@@ -33,8 +33,8 @@ const KEY_NULL                 = '[NULL]'
 
 const EXTENDED_TOOLBAR_WINDOW_MARGIN = 10
 const EXTENDED_TOOLBAR_WINDOW_PADDING = 5
-const EXTENDED_TOOLBAR_MODE_SWITCHER_WIDTH = 80
-const EXTENDED_TOOLBAR_MODE_SWITCHER_HEIGHT = 72
+const EXTENDED_TOOLBAR_MODE_SWITCHER_WIDTH = 72
+const EXTENDED_TOOLBAR_MODE_SWITCHER_HEIGHT = 60
 const EXTENDED_TOOLBAR_SLIDER_SIZE = 17
 
 const EXTENDED_TOOLBAR_HORIZONTAL_WINDOW_SIZE = {
@@ -96,6 +96,15 @@ const schema = {
     type: 'string',
     enum: ['horizontal', 'vertical'],
     default: 'horizontal'
+  },
+  tool_bar_dock: {
+    type: 'string',
+    enum: ['none', 'bottom-left'],
+    default: 'bottom-left'
+  },
+  draw_with_touch: {
+    type: 'boolean',
+    default: true
   },
   tool_bar_x: {
     type: 'number',
@@ -279,6 +288,26 @@ function getTrayIconPath() {
   return iconSrc.BLACK
 }
 
+function dockToolbarToBottomLeft() {
+  const currentDisplay = getLockedMonitor() || getActiveMonitor() || getUnderCursorMonitor()
+  if (!currentDisplay) return
+  const workAreaHeight = currentDisplay.workArea.height
+  const newX = 10
+  const newY = Math.max(10, workAreaHeight - 60 - 10)
+
+  store.set({
+    tool_bar_x: newX,
+    tool_bar_y: newY,
+    tool_bar_dock: 'bottom-left'
+  })
+
+  updateToolbarPositionInRenderer()
+
+  if (extendedToolbarWindow) {
+    updateExtendedToolbarWindowPosition(currentDisplay)
+  }
+}
+
 function updateContextMenu() {
   rawLog('Updating context menu...')
 
@@ -332,6 +361,23 @@ function updateContextMenu() {
       label: withAccelHint('Clear desk', key_clear_desk),
       accelerator: accelForTray(key_clear_desk),
       click: resetScreen
+    },
+    {
+      label: 'Draw With Touch (Hand)',
+      type: 'checkbox',
+      checked: store.get('draw_with_touch'),
+      click: () => {
+        const next = !store.get('draw_with_touch')
+        store.set('draw_with_touch', next)
+        refreshSettingsInRenderer()
+        updateContextMenu()
+      }
+    },
+    {
+      label: 'Dock Toolbar to Bottom-Left',
+      click: () => {
+        dockToolbarToBottomLeft()
+      }
     },
     { type: 'separator' },
     {
@@ -765,6 +811,8 @@ ipcMain.handle('get_settings', () => {
     whiteboard_spacing: store.get('whiteboard_spacing'),
     show_tool_bar: store.get('show_tool_bar'),
     tool_bar_orientation: store.get('tool_bar_orientation'),
+    tool_bar_dock: store.get('tool_bar_dock'),
+    draw_with_touch: store.get('draw_with_touch'),
     show_drawing_border: store.get('show_drawing_border'),
     cute_cursor_mode: store.get('cute_cursor_mode'),
     pen_smoothing: store.get('pen_smoothing'),
@@ -924,6 +972,8 @@ ipcMain.handle('get_configuration', () => {
     clear_drawings_on_hide:                   store.get('clear_drawings_on_hide'),
     disable_toolbar_in_pointer_mode:          store.get('disable_toolbar_in_pointer_mode'),
     tool_bar_orientation:                     store.get('tool_bar_orientation'),
+    tool_bar_dock:                            store.get('tool_bar_dock'),
+    draw_with_touch:                          store.get('draw_with_touch'),
 
     screenshot_directory:                     store.get('screenshot_directory'),
     screenshot_directory_is_default:          store.get('screenshot_directory') === schema.screenshot_directory.default,
@@ -1200,6 +1250,24 @@ ipcMain.handle('set_toolbar_orientation', (_event, value) => {
   return null
 });
 
+ipcMain.handle('set_draw_with_touch', (_event, value) => {
+  rawLog('Setting draw with touch:', value)
+  store.set('draw_with_touch', value)
+  refreshSettingsInRenderer()
+  updateContextMenu()
+  return null
+})
+
+ipcMain.handle('set_toolbar_dock', (_event, value) => {
+  rawLog('Setting toolbar dock:', value)
+  store.set('tool_bar_dock', value)
+  if (value === 'bottom-left') {
+    dockToolbarToBottomLeft()
+  }
+  refreshSettingsInRenderer()
+  return null
+})
+
 function refreshSettingsInRenderer() {
   mainWindow.webContents.send('refresh_settings', {
     whiteboard_color:        store.get('whiteboard_color'),
@@ -1211,6 +1279,8 @@ function refreshSettingsInRenderer() {
     cute_cursor_mode:        store.get('cute_cursor_mode'),
     pen_smoothing:           store.get('pen_smoothing'),
     tool_bar_color_palette:  store.get('tool_bar_color_palette'),
+    draw_with_touch:         store.get('draw_with_touch'),
+    tool_bar_dock:           store.get('tool_bar_dock'),
     swap_colors_indexes:     store.get('swap_colors_indexes'),
     clear_drawings_on_hide:  store.get('clear_drawings_on_hide'),
   })
@@ -1733,6 +1803,10 @@ function showMainWindow() {
 
   const currentDisplay = getLockedMonitor() || getUnderToolbarMonitor() || getUnderCursorMonitor()
 
+  if (store.get('tool_bar_dock') === 'bottom-left' && store.get('tool_bar_y') === 10) {
+    store.set('tool_bar_y', Math.max(10, currentDisplay.workArea.height - 60 - 10))
+  }
+
   updateMainWindowPosition(currentDisplay)
 
   showWindow(mainWindow)
@@ -1766,6 +1840,10 @@ function showExtendedToolbarWindow() {
   if (!store.get('show_tool_bar')) return;
 
   const currentDisplay = getLockedMonitor() || getActiveMonitor() || getUnderCursorMonitor()
+
+  if (store.get('tool_bar_dock') === 'bottom-left' && store.get('tool_bar_y') === 10) {
+    store.set('tool_bar_y', Math.max(10, currentDisplay.workArea.height - 60 - 10))
+  }
 
   updateExtendedToolbarWindowPosition(currentDisplay)
 

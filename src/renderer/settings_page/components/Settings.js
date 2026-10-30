@@ -65,6 +65,8 @@ const Settings = (config) => {
   const [clearDrawingsOnHide, setClearDrawingsOnHide] = useState(config.clear_drawings_on_hide);
   const [disableToolbarInPointerMode, setDisableToolbarInPointerMode] = useState(config.disable_toolbar_in_pointer_mode);
   const [toolbarOrientation, setToolbarOrientation] = useState(config.tool_bar_orientation);
+  const [drawWithTouch, setDrawWithTouch] = useState(config.draw_with_touch ?? true)
+  const [toolbarDock, setToolbarDock] = useState(config.tool_bar_dock || 'bottom-left')
   const [screenshotDirectory, setScreenshotDirectory] = useState({ path: config.screenshot_directory, isDefault: config.screenshot_directory_is_default });
 
   const [showHideApp, setShowHideApp]               = useState({ accelerator: config.key_binding_show_hide_app,        init: config.key_binding_show_hide_app_default });
@@ -225,6 +227,18 @@ const Settings = (config) => {
     setToolbarOrientation(orientation);
 
     window.electronAPI.setToolbarOrientation(orientation);
+  }
+
+  const toggleDrawWithTouch = () => {
+    const nextState = !drawWithTouch
+    setDrawWithTouch(nextState)
+    window.electronAPI.setDrawWithTouch(nextState)
+  }
+
+  const selectToolbarDock = (event) => {
+    const dock = event.target.value
+    setToolbarDock(dock)
+    window.electronAPI.setToolbarDock(dock)
   }
 
   const applyLaserTime = (value) => {
@@ -543,6 +557,20 @@ const Settings = (config) => {
 
                 <div className="settings-item">
                   <div className="settings-item-info">
+                    <div className="settings-item-title">Draw with hand / touch</div>
+                    <div className="settings-item-description">Enable finger drawing on touchscreens</div>
+                  </div>
+
+                  <div className="settings-item-control">
+                    <div
+                      className={`toggle ${drawWithTouch ? 'active' : ''}`}
+                      onClick={toggleDrawWithTouch}
+                    ></div>
+                  </div>
+                </div>
+
+                <div className="settings-item">
+                  <div className="settings-item-info">
                     <div className="settings-item-title">Clear drawings on hide</div>
                   </div>
 
@@ -669,6 +697,30 @@ const Settings = (config) => {
                       >
                         <option value="horizontal">Horizontal</option>
                         <option value="vertical">Vertical</option>
+                      </select>
+
+                      <div className="selectbar-arrow">
+                        <IoChevronDown className="icon" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="settings-item">
+                  <div className="settings-item-info">
+                    <div className="settings-item-title">Toolbar Dock Position</div>
+                    <div className="settings-item-description">Default anchor for compact toolbar</div>
+                  </div>
+
+                  <div className="settings-item-control">
+                    <div className="selectbar-container">
+                      <select
+                        className="selectbar"
+                        value={toolbarDock}
+                        onChange={selectToolbarDock}
+                      >
+                        <option value="bottom-left">Bottom-Left (Docked)</option>
+                        <option value="none">Free Floating</option>
                       </select>
 
                       <div className="selectbar-arrow">

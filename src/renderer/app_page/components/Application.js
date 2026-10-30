@@ -104,7 +104,9 @@ const Application = (settings) => {
   const initialToolbarDefaultFigure = settings.tool_bar_default_figure
   const initialToolbarOrientation = settings.tool_bar_orientation
   const initialToolbarCollapsed = settings.tool_bar_collapsed
-  const initialToolbarPosition = { x: settings.tool_bar_x, y: settings.tool_bar_y }
+  const initialToolbarPosition = settings.tool_bar_dock === 'bottom-left' && settings.tool_bar_y === 10
+    ? { x: 10, y: Math.max(10, window.innerHeight - 60 - 10) }
+    : { x: settings.tool_bar_x, y: settings.tool_bar_y }
   const [initialMainColorIndex, initialSecondaryColorIndex] = settings.swap_colors_indexes
   const initialLaserTime = settings.laser_time
   const initialFadeDisappearAfterMs = settings.fade_disappear_after_ms
@@ -171,6 +173,7 @@ const Application = (settings) => {
   const [isDocumentVisible, setIsDocumentVisible] = useState(true);
   const [penSmoothing, setPenSmoothing] = useState(initialPenSmoothing);
   const [clearDrawingsOnHide, setClearDrawingsOnHide] = useState(initialClearDrawingsOnHide);
+  const [drawWithTouch, setDrawWithTouch] = useState(settings.draw_with_touch ?? true)
   const [mainColorIndex, setMainColorIndex] = useState(initialMainColorIndex);
   const [secondaryColorIndex, setSecondaryColorIndex] = useState(initialSecondaryColorIndex);
   const [showScreenshotFlash, setShowScreenshotFlash] = useState(false);
@@ -296,22 +299,17 @@ const Application = (settings) => {
       return
     }
 
-    if (eventCode === 'keyx') {
+    if (eventCode === 'keyx' && !ctrlOrMeta) {
       if (['eraser', 'laser'].includes(activeTool)) {
-        return;
+        return
       }
 
-      if (activeColorIndex !== mainColorIndex) {
-        handleChangeColor(mainColorIndex);
-        return;
+      const nextColorIndex = (activeColorIndex + direction + colorList.length) % colorList.length
+      handleChangeColor(nextColorIndex)
+      if (activeFigureInfo) {
+        handleChangeFigureColor(nextColorIndex)
       }
-
-      if (activeColorIndex !== secondaryColorIndex) {
-        handleChangeColor(secondaryColorIndex);
-        return;
-      }
-
-      return;
+      return
     }
 
     // Static keyboard shortcuts
@@ -451,6 +449,13 @@ const Application = (settings) => {
       case 'e': {
         handleChangeTool('eraser');
         break;
+      }
+      case 's': {
+        if (!ctrlOrMeta) {
+          handleReset()
+          break
+        }
+        break
       }
       case 'arrowleft':
       case 'arrowright':
@@ -1700,6 +1705,9 @@ const Application = (settings) => {
     setClearDrawingsOnHide(newSettings.clear_drawings_on_hide);
     setMainColorIndex(newSettings.swap_colors_indexes[0]);
     setSecondaryColorIndex(newSettings.swap_colors_indexes[1]);
+    if (newSettings.draw_with_touch !== undefined) {
+      setDrawWithTouch(newSettings.draw_with_touch)
+    }
   };
 
   const handleUpdateToolbarPosition = (newSettings) => {
@@ -1986,6 +1994,7 @@ const Application = (settings) => {
         activeTool={activeTool}
         handleChangeTool={handleChangeTool}
         colorList={colorList}
+        drawWithTouch={drawWithTouch}
       />
 
       {

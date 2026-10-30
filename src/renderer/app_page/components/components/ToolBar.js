@@ -61,9 +61,9 @@ const ToolBar = ({
     highlighter: { title: "Highlighter", alias: "H", mainPanel: "4" },
     laser:       { title: "Laser",       alias: "L", mainPanel: "5" },
     eraser:      { title: "Eraser",      alias: "E", mainPanel: "6" },
-    color:       { title: "Color",                   mainPanel: "7", disabledFor: ["laser", "eraser"] },
+    color:       { title: "Color",       alias: "X", mainPanel: "7", disabledFor: ["laser", "eraser"] },
     brushSize:   { title: "Brush Size",              mainPanel: "8" },
-    clearDesk:   { title: "Clear Desk",              mainPanel: humanizedShortcut(clearDeskShortcut) },
+    clearDesk:   { title: "Clear Desk",  alias: "S", mainPanel: "S" },
   };
 
   const allIcons = {

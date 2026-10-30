@@ -1,3 +1,4 @@
+import { shouldTreatAsEraser, shouldIgnoreTouch } from '../../../extensions/touchManager.js'
 import './DrawDesk.scss';
 
 import React, { useEffect, useRef } from 'react';
@@ -41,6 +42,7 @@ const DrawDesk = ({
   activeTool,
   handleChangeTool,
   colorList,
+  drawWithTouch = true,
 }) => {
 
   const canvasRef = useRef(null);
@@ -184,17 +186,13 @@ const DrawDesk = ({
   };
 
   const isTemporaryEraser = (event) => {
-    const contactLength = Math.max(event.width, event.height);
-    const contactArea = event.width * event.height;
-    const isPalm = contactLength >= palmMinContactLength && contactArea >= palmMinContactArea;
-
-    return (event.pointerType === 'pen' && event.button === 5) ||
-           (event.pointerType === 'mouse' && event.button === 1) ||
-           (event.pointerType === 'touch' && isPalm);
+    return shouldTreatAsEraser(event, drawWithTouch)
   }
 
   const onPointerDown = (event) => {
-    event.preventDefault(); // NOTE: Required for Text figure
+    event.preventDefault() // NOTE: Required for Text figure
+
+    if (shouldIgnoreTouch(event, drawWithTouch)) return
 
     if(event.pointerType === 'mouse' && event.button === 2) return;
 
