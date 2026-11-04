@@ -169,10 +169,13 @@ const ToolBar = ({
     let nextX = x;
     let nextY = y;
 
+    const centerX = Math.round((windowWidth - toolbarWidth) / 2)
     if (nextX < leftEdge) {
-      nextX = minX;
+      nextX = minX
     } else if (nextX + toolbarWidth > rightEdge) {
-      nextX = maxX;
+      nextX = maxX
+    } else if (Math.abs(nextX - centerX) <= STICKY_DISTANCE * 2) {
+      nextX = centerX
     }
 
     if (nextY < topEdge) {

@@ -9,7 +9,7 @@
 
         --toolbar-background-color: #FFFFFF;
         --toolbar-border-color: #020202;
-        --toolbar-thickness: 44px;
+        --toolbar-thickness: 50px;
       }
 
       html,
@@ -47,63 +47,82 @@
         position: absolute;
         top: var(--toolbar-window-margin);
         left: var(--toolbar-window-margin);
+        filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.15));
       }
 
       #toolbar {
         display: flex;
+        height: var(--toolbar-thickness);
+        align-items: center;
       }
 
       .toolbar__close {
         position: absolute;
-        top: -2px;
-        left: -2px;
-        z-index: 1;
+        top: -7px;
+        left: -7px;
+        z-index: 2;
         background-color: var(--toolbar-background-color);
         border: 1px solid var(--toolbar-border-color);
-        border-radius: 15px;
+        border-radius: 50%;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+        transition: transform 0.15s ease, background-color 0.15s ease;
+      }
+
+      .toolbar__close:hover {
+        transform: scale(1.1);
+        background-color: #fee;
       }
 
       .toolbar__close button {
         display: flex;
-        padding: 2px;
+        width: 16px;
+        height: 16px;
+        padding: 0;
         justify-content: center;
         align-items: center;
+        cursor: pointer;
       }
 
       .toolbar__close svg {
-        width: 12px;
-        height: 12px;
+        width: 10px;
+        height: 10px;
       }
 
       .toolbar__mode-switcher {
         display: flex;
-        height: 60px;
+        height: var(--toolbar-thickness);
         box-sizing: border-box;
         background-color: var(--toolbar-background-color);
-        border-radius: 10px;
         border: 1px solid var(--toolbar-border-color);
       }
 
       .toolbar__main-button {
         display: flex;
-        padding: 8px 0;
+        padding: 0 4px;
+        align-items: center;
       }
 
       .toolbar__main-button button {
         display: flex;
         align-self: center;
+        align-items: center;
+        justify-content: center;
         cursor: pointer;
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
       }
 
       .toolbar__main-button svg {
-        width: 42px;
-        height: 42px;
+        width: 26px;
+        height: 26px;
       }
 
       .toolbar__draglines {
         display: flex;
         padding: 0 4px;
         align-items: center;
+        cursor: move;
       }
 
       .draglines {
@@ -118,10 +137,13 @@
         height: 2px;
         border-radius: 50%;
         background-color: var(--toolbar-border-color);
+        opacity: 0.6;
       }
 
       .toolbar__slider {
         display: flex;
+        height: var(--toolbar-thickness);
+        width: 18px;
         align-self: center;
         align-items: center;
         justify-content: center;
@@ -132,28 +154,41 @@
       }
 
       .toolbar__slider svg {
-        width: 16px;
-        height: 16px;
+        width: 14px;
+        height: 14px;
       }
 
       .toolbar--horizontal {
         flex-direction: row;
       }
 
+      .toolbar--horizontal .toolbar__mode-switcher {
+        border-radius: 10px 0 0 10px;
+        border-right: none;
+      }
+
       .toolbar--horizontal .toolbar__slider {
-        height: var(--toolbar-thickness);
-        border-left: 0;
         border-radius: 0 10px 10px 0;
+        border-left: 1px solid rgba(0, 0, 0, 0.15);
       }
 
       .toolbar--vertical {
         flex-direction: column;
+        width: var(--toolbar-thickness);
+        height: auto;
+      }
+
+      .toolbar--vertical .toolbar__mode-switcher {
+        width: var(--toolbar-thickness);
+        border-radius: 10px 10px 0 0;
+        border-bottom: none;
       }
 
       .toolbar--vertical .toolbar__slider {
         width: var(--toolbar-thickness);
-        border-top: 0;
+        height: 18px;
         border-radius: 0 0 10px 10px;
+        border-top: 1px solid rgba(0, 0, 0, 0.15);
       }
 
       .toolbar--vertical .toolbar__slider svg {
@@ -178,9 +213,9 @@
 
         <div class="toolbar__main-button">
           <button tabindex="-1" title="Draw Mode">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-              <path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"></path>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" fill="#000000">
+              <!-- Font Awesome Free 5.15.4 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) -->
+              <path d="M448 360V40c0-22.09-17.91-40-40-40H40C17.91 0 0 17.91 0 40v320c0 22.09 17.91 40 40 40h117.7l-23.05 46.1c-5.61 11.22-1.06 24.86 10.16 30.47 11.24 5.6 24.86 1.06 30.47-10.16L207.98 416h32.05l32.7 66.41c4.01 8.03 12.19 12.94 20.89 12.94 3.19 0 6.42-.64 9.47-1.99 11.27-5.52 15.95-19.11 10.43-30.37L290.3 416H408c22.09 0 40-17.91 40-40zM40 368V48h368v320H40z"/>
             </svg>
           </button>
         </div>
@@ -198,15 +233,17 @@
       </div>
 
       <div class="toolbar__slider">
-        <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 256 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
-          <path d="M224.3 273l-136 136c-9.4 9.4-24.6 9.4-33.9 0l-22.6-22.6c-9.4-9.4-9.4-24.6 0-33.9l96.4-96.4-96.4-96.4c-9.4-9.4-9.4-24.6 0-33.9L54.3 103c9.4-9.4 24.6-9.4 33.9 0l136 136c9.5 9.4 9.5 24.6.1 34z"></path>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" fill="#000000">
+          <!-- Font Awesome Free 5.15.4 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) -->
+          <path d="M224.3 273l-136 136c-9.4 9.4-24.6 9.4-33.9 0l-22.6-22.6c-9.4-9.4-9.4-24.6 0-33.9l96.4-96.4-96.4-96.4c-9.4-9.4-9.4-24.6 0-33.9L54.3 103c9.4-9.4 24.6-9.4 33.9 0l136 136c9.5 9.4 9.5 24.6.1 34z"/>
         </svg>
       </div>
 
       <div class="toolbar__close">
         <button tabindex="-1">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path fill="currentColor" d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 352 512" fill="#000000">
+            <!-- Font Awesome Free 5.15.4 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) -->
+            <path d="M242.72 256l100.07-100.07c12.28-12.28 12.28-32.19 0-44.48l-22.24-22.24c-12.28-12.28-32.19-12.28-44.48 0L176 189.28 75.93 89.21c-12.28-12.28-32.19-12.28-44.48 0L9.21 111.45c-12.28 12.28-12.28 32.19 0 44.48L109.28 256 9.21 356.07c-12.28 12.28-12.28 32.19 0 44.48l22.24 22.24c12.28 12.28 32.2 12.28 44.48 0L176 322.72l100.07 100.07c12.28 12.28 32.2 12.28 44.48 0l22.24-22.24c12.28-12.28 12.28-32.19 0-44.48L242.72 256z"/>
           </svg>
         </button>
       </div>

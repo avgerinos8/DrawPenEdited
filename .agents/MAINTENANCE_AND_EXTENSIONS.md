@@ -28,34 +28,25 @@ To pull upstream updates without merge conflicts, adhere to the following princi
 
 ---
 
-## 2. Target Feature 1: Compact Docked Toolbar
+## 2. Implemented Feature 1: Compact Redesigned Toolbar (Max 50px Height) & Docking
 
-### 2.1 Requirements
-1. **Reduce Toolbar Height (Thickness):**
-   - Current standard thickness: `44px`.
-   - Current mode switcher height: `72px` (50px SVG icon + 10px vertical padding).
-   - In compact mode, align mode switcher height with the toolbar strip (e.g. `32px` to `36px`).
-2. **Bottom-Left Docking:**
-   - Position the toolbar at the bottom-left corner of the display `workArea`.
-   - In Windows 11 with centered taskbar, space exists on the bottom-left above the taskbar boundary.
-   - When docked, automatically calculate coordinates:
-     - `x = toolbarViewportMargin`
-     - `y = window.innerHeight - toolbarHeight - toolbarViewportMargin`
+### 2.1 Requirements & Specifications
+1. **Unified Sleek Height (50px, strictly <= 60px):**
+   - Previous design had a stepped mismatch: mode switcher at 72px/60px and tools container at 44px.
+   - Redesigned to a unified 50px profile across all elements (`.toolbar__mode-switcher`, `.toolbar__container`, `.toolbar__slider`).
+   - Seamless floating pill aesthetic with soft modern drop-shadow and rounded borders.
+   - Slide transitions for subpanels (`brush-slide`, `tool-slide`, `color-slide`, `width-slide`) synchronized to 50px offsets.
+   - Matching styling and dimensions applied to `src/renderer/extended_toolbar_page/index.html`.
+2. **Docking (Above Start Menu & Bottom-Left):**
+   - Dock modes supported: `'above-start-menu'` (default), `'bottom-left'`, and `'none'` (free floating).
+   - In Windows 11 with centered taskbar, `'above-start-menu'` centers horizontally (`x = Math.round((workArea.width - toolbarWidth) / 2)`) and anchors 10px above the bottom taskbar boundary (`y = workArea.height - toolbarHeight - 10`).
+   - Automatic snapping when dragging near the horizontal center or bottom edges.
+   - Quick dock options available directly from Tray context menu and Settings page.
 
-### 2.2 Low-Conflict Implementation Plan
-1. **Styling Module:**
-   - Create a dedicated stylesheet (e.g. `src/renderer/app_page/components/components/ToolBarCompact.scss`).
-   - Define a CSS modifier `.toolbar--compact`:
-     - Reduce `--toolbar-thickness` from `44px` to `34px`.
-     - Reduce button sizes from `26px` to `22px`.
-     - Reduce mode switcher SVG size from `50px` to `24px`.
-     - Reduce mode switcher vertical padding from `10px` to `4px`.
-2. **Docking Helper:**
-   - Create an isolated helper function `calculateDockPosition(dockPreset, windowSize, toolbarSize)`.
-   - Presets: `'none'`, `'bottom-left'`.
-3. **Core File Hook:**
-   - In `ToolBar.js`, add `toolbar--compact` class based on user configuration.
-   - In `src/main/index.js`, add corresponding schema key `tool_bar_compact: { type: 'boolean', default: false }`.
+### 2.2 Modular Architecture
+- Implementation isolated in `src/renderer/extensions/dockManager.js`.
+- Functions: `getAboveStartMenuPosition()`, `getBottomLeftPosition()`, `isNearAboveStartMenu()`, `isNearBottomLeft()`.
+- IPC handler `set_toolbar_dock` and `commit_toolbar_position` in `src/main/index.js` dynamically manage active monitor coordinates.
 
 ---
 

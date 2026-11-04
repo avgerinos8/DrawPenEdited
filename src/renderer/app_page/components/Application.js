@@ -2,6 +2,7 @@ import './Application.scss';
 
 import React, { useCallback, useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { throttle, debounce } from 'lodash';
+import { getAboveStartMenuPosition, getBottomLeftPosition, isNearAboveStartMenu, isNearBottomLeft } from '../../extensions/dockManager.js'
 import DrawDesk from './components/DrawDesk.js';
 import ToolBar from './components/ToolBar.js';
 import FigureToolbar from './components/FigureToolbar.js';
@@ -104,9 +105,16 @@ const Application = (settings) => {
   const initialToolbarDefaultFigure = settings.tool_bar_default_figure
   const initialToolbarOrientation = settings.tool_bar_orientation
   const initialToolbarCollapsed = settings.tool_bar_collapsed
-  const initialToolbarPosition = settings.tool_bar_dock === 'bottom-left' && settings.tool_bar_y === 10
-    ? { x: 10, y: Math.max(10, window.innerHeight - 60 - 10) }
-    : { x: settings.tool_bar_x, y: settings.tool_bar_y }
+  const calculateInitialToolbarPosition = () => {
+    if (settings.tool_bar_dock === 'above-start-menu') {
+      return getAboveStartMenuPosition(window.innerWidth, window.innerHeight)
+    }
+    if (settings.tool_bar_dock === 'bottom-left') {
+      return getBottomLeftPosition(window.innerHeight)
+    }
+    return { x: settings.tool_bar_x, y: settings.tool_bar_y }
+  }
+  const initialToolbarPosition = calculateInitialToolbarPosition()
   const [initialMainColorIndex, initialSecondaryColorIndex] = settings.swap_colors_indexes
   const initialLaserTime = settings.laser_time
   const initialFadeDisappearAfterMs = settings.fade_disappear_after_ms
@@ -1791,13 +1799,21 @@ const Application = (settings) => {
   };
 
   const invokeCommitToolbarPosition = useCallback((position) => {
-    console.log('Renderer -> Main: Invoke Commit Toolbar Position');
+    console.log('Renderer -> Main: Invoke Commit Toolbar Position')
+
+    let dock = 'none'
+    if (isNearAboveStartMenu(position.x, position.y, window.innerWidth, window.innerHeight)) {
+      dock = 'above-start-menu'
+    } else if (isNearBottomLeft(position.x, position.y, window.innerHeight)) {
+      dock = 'bottom-left'
+    }
 
     window.electronAPI.invokeCommitToolbarPosition({
       tool_bar_x: position.x,
       tool_bar_y: position.y,
-    });
-  }, []);
+      tool_bar_dock: dock
+    })
+  }, [])
 
   const handleChangeWhiteboardTheme = (theme) => {
     setWhiteboardTheme(theme);

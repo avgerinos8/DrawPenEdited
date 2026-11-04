@@ -33,9 +33,9 @@ const KEY_NULL                 = '[NULL]'
 
 const EXTENDED_TOOLBAR_WINDOW_MARGIN = 10
 const EXTENDED_TOOLBAR_WINDOW_PADDING = 5
-const EXTENDED_TOOLBAR_MODE_SWITCHER_WIDTH = 72
-const EXTENDED_TOOLBAR_MODE_SWITCHER_HEIGHT = 60
-const EXTENDED_TOOLBAR_SLIDER_SIZE = 17
+const EXTENDED_TOOLBAR_MODE_SWITCHER_WIDTH = 58
+const EXTENDED_TOOLBAR_MODE_SWITCHER_HEIGHT = 50
+const EXTENDED_TOOLBAR_SLIDER_SIZE = 18
 
 const EXTENDED_TOOLBAR_HORIZONTAL_WINDOW_SIZE = {
   width: EXTENDED_TOOLBAR_WINDOW_MARGIN + EXTENDED_TOOLBAR_MODE_SWITCHER_WIDTH + EXTENDED_TOOLBAR_SLIDER_SIZE + EXTENDED_TOOLBAR_WINDOW_PADDING,
@@ -99,8 +99,8 @@ const schema = {
   },
   tool_bar_dock: {
     type: 'string',
-    enum: ['none', 'bottom-left'],
-    default: 'bottom-left'
+    enum: ['none', 'bottom-left', 'above-start-menu'],
+    default: 'above-start-menu'
   },
   draw_with_touch: {
     type: 'boolean',
@@ -108,11 +108,11 @@ const schema = {
   },
   tool_bar_x: {
     type: 'number',
-    default: 10
+    default: 552
   },
   tool_bar_y: {
     type: 'number',
-    default: 10
+    default: 852
   },
   tool_bar_active_tool: {
     type: 'string',
@@ -288,16 +288,60 @@ function getTrayIconPath() {
   return iconSrc.BLACK
 }
 
+function getDockCoordinates(dockMode, display) {
+  const currentDisplay = display || getLockedMonitor() || getActiveMonitor() || getUnderCursorMonitor()
+  if (!currentDisplay) return { x: 10, y: 10 }
+  const workArea = currentDisplay.workArea
+  const toolbarHeight = 50
+  const toolbarWidth = 432
+  const margin = 10
+
+  if (dockMode === 'above-start-menu') {
+    return {
+      x: Math.max(margin, Math.round((workArea.width - toolbarWidth) / 2)),
+      y: Math.max(margin, workArea.height - toolbarHeight - margin)
+    }
+  }
+
+  if (dockMode === 'bottom-left') {
+    return {
+      x: margin,
+      y: Math.max(margin, workArea.height - toolbarHeight - margin)
+    }
+  }
+
+  return {
+    x: store.get('tool_bar_x'),
+    y: store.get('tool_bar_y')
+  }
+}
+
+function dockToolbarAboveStartMenu() {
+  const currentDisplay = getLockedMonitor() || getActiveMonitor() || getUnderCursorMonitor()
+  if (!currentDisplay) return
+  const { x, y } = getDockCoordinates('above-start-menu', currentDisplay)
+
+  store.set({
+    tool_bar_x: x,
+    tool_bar_y: y,
+    tool_bar_dock: 'above-start-menu'
+  })
+
+  updateToolbarPositionInRenderer()
+
+  if (extendedToolbarWindow) {
+    updateExtendedToolbarWindowPosition(currentDisplay)
+  }
+}
+
 function dockToolbarToBottomLeft() {
   const currentDisplay = getLockedMonitor() || getActiveMonitor() || getUnderCursorMonitor()
   if (!currentDisplay) return
-  const workAreaHeight = currentDisplay.workArea.height
-  const newX = 10
-  const newY = Math.max(10, workAreaHeight - 60 - 10)
+  const { x, y } = getDockCoordinates('bottom-left', currentDisplay)
 
   store.set({
-    tool_bar_x: newX,
-    tool_bar_y: newY,
+    tool_bar_x: x,
+    tool_bar_y: y,
     tool_bar_dock: 'bottom-left'
   })
 
@@ -374,7 +418,13 @@ function updateContextMenu() {
       }
     },
     {
-      label: 'Dock Toolbar to Bottom-Left',
+      label: 'Dock Above Start Menu',
+      click: () => {
+        dockToolbarAboveStartMenu()
+      }
+    },
+    {
+      label: 'Dock to Bottom-Left',
       click: () => {
         dockToolbarToBottomLeft()
       }
@@ -851,13 +901,19 @@ ipcMain.handle('set_settings', (_event, newSettings) => {
 ipcMain.handle('commit_toolbar_position', (_event, position) => {
   rawLog('Committing toolbar position from Renderer:')
 
-  store.set({
+  const update = {
     tool_bar_x: position.tool_bar_x,
     tool_bar_y: position.tool_bar_y,
-  })
+  }
+
+  if (position.tool_bar_dock !== undefined) {
+    update.tool_bar_dock = position.tool_bar_dock
+  }
+
+  store.set(update)
 
   return null
-});
+})
 
 ipcMain.handle('close_app', () => {
   hideApp();
@@ -1261,7 +1317,9 @@ ipcMain.handle('set_draw_with_touch', (_event, value) => {
 ipcMain.handle('set_toolbar_dock', (_event, value) => {
   rawLog('Setting toolbar dock:', value)
   store.set('tool_bar_dock', value)
-  if (value === 'bottom-left') {
+  if (value === 'above-start-menu') {
+    dockToolbarAboveStartMenu()
+  } else if (value === 'bottom-left') {
     dockToolbarToBottomLeft()
   }
   refreshSettingsInRenderer()
@@ -1803,8 +1861,10 @@ function showMainWindow() {
 
   const currentDisplay = getLockedMonitor() || getUnderToolbarMonitor() || getUnderCursorMonitor()
 
-  if (store.get('tool_bar_dock') === 'bottom-left' && store.get('tool_bar_y') === 10) {
-    store.set('tool_bar_y', Math.max(10, currentDisplay.workArea.height - 60 - 10))
+  const dockMode = store.get('tool_bar_dock')
+  if (dockMode && dockMode !== 'none') {
+    const { x, y } = getDockCoordinates(dockMode, currentDisplay)
+    store.set({ tool_bar_x: x, tool_bar_y: y })
   }
 
   updateMainWindowPosition(currentDisplay)
@@ -1841,8 +1901,10 @@ function showExtendedToolbarWindow() {
 
   const currentDisplay = getLockedMonitor() || getActiveMonitor() || getUnderCursorMonitor()
 
-  if (store.get('tool_bar_dock') === 'bottom-left' && store.get('tool_bar_y') === 10) {
-    store.set('tool_bar_y', Math.max(10, currentDisplay.workArea.height - 60 - 10))
+  const dockMode = store.get('tool_bar_dock')
+  if (dockMode && dockMode !== 'none') {
+    const { x, y } = getDockCoordinates(dockMode, currentDisplay)
+    store.set({ tool_bar_x: x, tool_bar_y: y })
   }
 
   updateExtendedToolbarWindowPosition(currentDisplay)

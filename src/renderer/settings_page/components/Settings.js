@@ -66,7 +66,7 @@ const Settings = (config) => {
   const [disableToolbarInPointerMode, setDisableToolbarInPointerMode] = useState(config.disable_toolbar_in_pointer_mode);
   const [toolbarOrientation, setToolbarOrientation] = useState(config.tool_bar_orientation);
   const [drawWithTouch, setDrawWithTouch] = useState(config.draw_with_touch ?? true)
-  const [toolbarDock, setToolbarDock] = useState(config.tool_bar_dock || 'bottom-left')
+  const [toolbarDock, setToolbarDock] = useState(config.tool_bar_dock || 'above-start-menu')
   const [screenshotDirectory, setScreenshotDirectory] = useState({ path: config.screenshot_directory, isDefault: config.screenshot_directory_is_default });
 
   const [showHideApp, setShowHideApp]               = useState({ accelerator: config.key_binding_show_hide_app,        init: config.key_binding_show_hide_app_default });
@@ -719,6 +719,7 @@ const Settings = (config) => {
                         value={toolbarDock}
                         onChange={selectToolbarDock}
                       >
+                        <option value="above-start-menu">Above Start Menu (Docked)</option>
                         <option value="bottom-left">Bottom-Left (Docked)</option>
                         <option value="none">Free Floating</option>
                       </select>
