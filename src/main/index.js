@@ -90,7 +90,7 @@ const schema = {
   },
   disable_toolbar_in_pointer_mode: {
     type: 'boolean',
-    default: false
+    default: true
   },
   tool_bar_orientation: {
     type: 'string',
@@ -108,7 +108,7 @@ const schema = {
   },
   tool_bar_x: {
     type: 'number',
-    default: 0
+    default: 10
   },
   tool_bar_y: {
     type: 'number',
@@ -290,12 +290,13 @@ function getTrayIconPath() {
 
 function getDockCoordinates(_dockMode, display) {
   const currentDisplay = display || getLockedMonitor() || getActiveMonitor() || getUnderCursorMonitor()
-  if (!currentDisplay) return { x: 0, y: 0 }
+  if (!currentDisplay) return { x: 10, y: 10 }
   const bounds = currentDisplay.bounds
   const toolbarHeight = 60
+  const margin = 10
 
   return {
-    x: 0,
+    x: margin,
     y: Math.max(0, bounds.height - toolbarHeight)
   }
 }
@@ -1775,6 +1776,7 @@ function showWindow(targetWindow, { inactive = false } = {}) {
     } else {
       targetWindow.show()
     }
+    targetWindow.setAlwaysOnTop(true, 'screen-saver')
     targetWindow.moveTop()
   } finally {
     targetWindow.setOpacity(1)

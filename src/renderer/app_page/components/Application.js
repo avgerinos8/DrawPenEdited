@@ -229,11 +229,16 @@ const Application = (settings) => {
       return;
     }
 
-    const eventKey = (event.key || '').toLowerCase();
-    const eventCode = (event.code || '').toLowerCase();
-    const ctrlOrMeta = event.ctrlKey || event.metaKey;
-    const shiftKey = event.shiftKey;
-    const eventRepeat = event.repeat;
+    const eventKey = (event.key || '').toLowerCase()
+    const eventCode = (event.code || '').toLowerCase()
+    const ctrlOrMeta = event.ctrlKey || event.metaKey
+    const shiftKey = event.shiftKey
+    const eventRepeat = event.repeat
+
+    let shortcutChar = eventKey
+    if (eventCode.startsWith('key')) {
+      shortcutChar = eventCode.slice(3)
+    }
 
     const direction = shiftKey ? -1 : 1;
 
@@ -299,11 +304,11 @@ const Application = (settings) => {
       invokeMakeScreenshot();
       return
     }
-    if (ctrlOrMeta && !['v', 'c', 'z'].includes(eventKey)) {
+    if (ctrlOrMeta && !['v', 'c', 'z'].includes(shortcutChar)) {
       return
     }
 
-    if (eventCode === 'keyx' && !ctrlOrMeta) {
+    if (shortcutChar === 'x' && !ctrlOrMeta) {
       if (['eraser', 'laser'].includes(activeTool)) {
         return
       }
@@ -317,7 +322,7 @@ const Application = (settings) => {
     }
 
     // Static keyboard shortcuts
-    switch (eventKey) {
+    switch (shortcutChar) {
       case 'v': {
         if (ctrlOrMeta) {
           if (clipboardFigure) {
@@ -691,7 +696,12 @@ const Application = (settings) => {
     const accelOptions = parseAccelerator(shortcut);
     if (!accelOptions) return false;
 
-    const pressedKey = eventCode.startsWith('DIGIT') ? eventCode : eventKey;
+    let pressedKey = eventKey
+    if (eventCode.startsWith('DIGIT')) {
+      pressedKey = eventCode
+    } else if (eventCode.startsWith('KEY')) {
+      pressedKey = eventCode.slice(3)
+    }
 
     return (
       (accelOptions.mainKey === pressedKey) &&

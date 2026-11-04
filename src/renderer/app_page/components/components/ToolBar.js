@@ -116,15 +116,15 @@ const ToolBar = ({
     const newY = e.clientY - offset.y
 
     const currentWidth = isCollapsed ? HANDLE_WIDTH : TOOLBAR_WIDTH
-    const minX = 0
+    const minX = 10
     const minY = 0
-    const maxX = Math.max(0, window.innerWidth - currentWidth)
+    const maxX = Math.max(minX, window.innerWidth - currentWidth - 10)
     const maxY = Math.max(0, window.innerHeight - TOOLBAR_HEIGHT)
 
     let clampedX = Math.min(Math.max(newX, minX), maxX)
     let clampedY = Math.min(Math.max(newY, minY), maxY)
 
-    if (clampedX <= SNAP_THRESHOLD) clampedX = minX
+    if (clampedX <= minX + SNAP_THRESHOLD) clampedX = minX
     if (clampedY >= maxY - SNAP_THRESHOLD) clampedY = maxY
 
     setPosition({ x: Math.round(clampedX), y: Math.round(clampedY) })
