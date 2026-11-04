@@ -2,7 +2,7 @@ import './Application.scss';
 
 import React, { useCallback, useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { throttle, debounce } from 'lodash';
-import { getBottomLeftPosition, isNearBottomLeft } from '../../extensions/dockManager.js'
+import { getTopRightPosition, isNearTopRight } from '../../extensions/dockManager.js'
 import DrawDesk from './components/DrawDesk.js';
 import ToolBar from './components/ToolBar.js';
 import FigureToolbar from './components/FigureToolbar.js';
@@ -106,9 +106,9 @@ const Application = (settings) => {
   const initialToolbarOrientation = settings.tool_bar_orientation
   const initialToolbarCollapsed = settings.tool_bar_collapsed
   const calculateInitialToolbarPosition = () => {
-    return getBottomLeftPosition(window.innerHeight)
+    return getTopRightPosition(window.innerWidth)
   }
-  const initialToolbarPosition = settings.tool_bar_dock === 'none' && settings.tool_bar_y < window.innerHeight - 70
+  const initialToolbarPosition = settings.tool_bar_dock === 'none' && settings.tool_bar_x > 0
     ? { x: settings.tool_bar_x, y: settings.tool_bar_y }
     : calculateInitialToolbarPosition()
   const [initialMainColorIndex, initialSecondaryColorIndex] = settings.swap_colors_indexes
@@ -1808,8 +1808,8 @@ const Application = (settings) => {
     console.log('Renderer -> Main: Invoke Commit Toolbar Position')
 
     let dock = 'none'
-    if (isNearBottomLeft(position.x, position.y, window.innerHeight)) {
-      dock = 'bottom-left'
+    if (isNearTopRight(position.x, position.y, window.innerWidth)) {
+      dock = 'top-right'
     }
 
     window.electronAPI.invokeCommitToolbarPosition({

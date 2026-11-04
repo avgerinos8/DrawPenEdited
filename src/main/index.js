@@ -99,8 +99,8 @@ const schema = {
   },
   tool_bar_dock: {
     type: 'string',
-    enum: ['none', 'bottom-left', 'above-start-menu'],
-    default: 'bottom-left'
+    enum: ['none', 'top-right'],
+    default: 'top-right'
   },
   draw_with_touch: {
     type: 'boolean',
@@ -290,26 +290,27 @@ function getTrayIconPath() {
 
 function getDockCoordinates(_dockMode, display) {
   const currentDisplay = display || getLockedMonitor() || getActiveMonitor() || getUnderCursorMonitor()
-  if (!currentDisplay) return { x: 10, y: 10 }
+  if (!currentDisplay) return { x: 10, y: 8 }
   const bounds = currentDisplay.bounds
-  const toolbarHeight = 60
-  const margin = 10
+  const toolbarWidth = 210
+  const windowControlsOffset = 150
+  const marginTop = 8
 
   return {
-    x: margin,
-    y: Math.max(0, bounds.height - toolbarHeight)
+    x: Math.max(10, bounds.width - toolbarWidth - windowControlsOffset),
+    y: marginTop
   }
 }
 
-function dockToolbarAboveStartMenu() {
+function dockToolbarToTopRight() {
   const currentDisplay = getLockedMonitor() || getActiveMonitor() || getUnderCursorMonitor()
   if (!currentDisplay) return
-  const { x, y } = getDockCoordinates('above-start-menu', currentDisplay)
+  const { x, y } = getDockCoordinates('top-right', currentDisplay)
 
   store.set({
     tool_bar_x: x,
     tool_bar_y: y,
-    tool_bar_dock: 'above-start-menu'
+    tool_bar_dock: 'top-right'
   })
 
   updateToolbarPositionInRenderer()
@@ -319,23 +320,6 @@ function dockToolbarAboveStartMenu() {
   }
 }
 
-function dockToolbarToBottomLeft() {
-  const currentDisplay = getLockedMonitor() || getActiveMonitor() || getUnderCursorMonitor()
-  if (!currentDisplay) return
-  const { x, y } = getDockCoordinates('bottom-left', currentDisplay)
-
-  store.set({
-    tool_bar_x: x,
-    tool_bar_y: y,
-    tool_bar_dock: 'bottom-left'
-  })
-
-  updateToolbarPositionInRenderer()
-
-  if (extendedToolbarWindow) {
-    updateExtendedToolbarWindowPosition(currentDisplay)
-  }
-}
 
 function updateContextMenu() {
   rawLog('Updating context menu...')
@@ -403,15 +387,9 @@ function updateContextMenu() {
       }
     },
     {
-      label: 'Dock Above Start Menu',
+      label: 'Dock to Top-Right',
       click: () => {
-        dockToolbarAboveStartMenu()
-      }
-    },
-    {
-      label: 'Dock to Bottom-Left',
-      click: () => {
-        dockToolbarToBottomLeft()
+        dockToolbarToTopRight()
       }
     },
     { type: 'separator' },
@@ -809,7 +787,7 @@ app.on('window-all-closed', () => {
 })
 
 function startAsHiddenCheck() {
-  if (safeWasOpenedAtLogin()) {
+  if (safeWasOpenedAtLogin() || process.argv.includes('--hidden')) {
     startAsHidden = true
     return
   }
@@ -1145,12 +1123,19 @@ ipcMain.handle('set_shortcut', (_event, key, value) => {
 ipcMain.handle('set_launch_on_login', (_event, value) => {
   rawLog('Setting launch on login:', value)
 
-  safeSetLoginItemSettings({ openAtLogin: value });
+  safeSetLoginItemSettings({
+    openAtLogin: value,
+    openAsHidden: value,
+    args: value ? ['--hidden'] : []
+  })
 
   store.set('launch_on_login', value)
+  if (value) {
+    store.set('starts_hidden', true)
+  }
 
-  return null;
-});
+  return null
+})
 
 ipcMain.handle('set_starts_hidden', (_event, value) => {
   rawLog('Setting starts hidden:', value)
@@ -1302,10 +1287,8 @@ ipcMain.handle('set_draw_with_touch', (_event, value) => {
 ipcMain.handle('set_toolbar_dock', (_event, value) => {
   rawLog('Setting toolbar dock:', value)
   store.set('tool_bar_dock', value)
-  if (value === 'above-start-menu') {
-    dockToolbarAboveStartMenu()
-  } else if (value === 'bottom-left') {
-    dockToolbarToBottomLeft()
+  if (value === 'top-right') {
+    dockToolbarToTopRight()
   }
   refreshSettingsInRenderer()
   return null
@@ -2020,7 +2003,7 @@ function setApplicationName() {
 }
 
 function safeWasOpenedAtLogin() {
-  if (isLinux) return false; // Linux не підтримує login items
+  if (isLinux) return false // Linux does not support login items
 
   try {
     return !!app.getLoginItemSettings().wasOpenedAtLogin;

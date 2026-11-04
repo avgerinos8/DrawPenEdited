@@ -1,7 +1,7 @@
 :root {
-  --toolbar-width: 220px;
-  --toolbar-height: 60px;
-  --toolbar-handle-width: 40px;
+  --toolbar-width: 210px;
+  --toolbar-height: 40px;
+  --toolbar-handle-width: 30px;
   --toolbar-grid-width: 180px;
   --toolbar-bg: #FFFFFF;
   --toolbar-border: rgba(0, 0, 0, 0.18);
@@ -18,7 +18,7 @@
   box-sizing: border-box;
   background-color: var(--toolbar-bg);
   border: 1px solid var(--toolbar-border);
-  border-radius: 8px;
+  border-radius: 6px;
   box-shadow: var(--toolbar-shadow);
   overflow: hidden;
   user-select: none;
@@ -65,14 +65,14 @@
 
     .handle__grip {
       display: grid;
-      grid-template-columns: repeat(2, 2.5px);
-      row-gap: 3px;
+      grid-template-columns: repeat(2, 2px);
+      row-gap: 2px;
       column-gap: 2px;
-      margin-right: 3px;
+      margin-right: 2px;
 
       .grip-dot {
-        width: 2.5px;
-        height: 2.5px;
+        width: 2px;
+        height: 2px;
         border-radius: 50%;
         background-color: rgba(0, 0, 0, 0.35);
       }
@@ -85,8 +85,8 @@
       color: #0F172A;
 
       svg {
-        width: 18px;
-        height: 18px;
+        width: 14px;
+        height: 14px;
         pointer-events: none;
       }
     }
@@ -101,9 +101,10 @@
 
     .grid-row {
       display: flex;
-      height: 30px;
+      height: 19px;
       width: 100%;
       align-items: center;
+      justify-content: flex-start;
       padding: 0;
       margin: 0;
       box-sizing: border-box;
@@ -118,33 +119,33 @@
       align-items: center;
       justify-content: center;
       width: 20px;
-      height: 30px;
+      height: 14px;
       padding: 0;
       margin: 0;
       box-sizing: border-box;
-      border-radius: 3px;
+      border-radius: 2px;
       color: var(--icon-color, #334155);
       transition: background-color 0.1s ease, transform 0.08s ease;
 
       svg {
-        width: 13px;
-        height: 13px;
+        width: 11px;
+        height: 11px;
         pointer-events: none;
       }
 
       &:hover {
         background-color: rgba(0, 0, 0, 0.07);
-        transform: scale(1.1);
+        transform: scale(1.08);
       }
 
       &.active {
         background-color: rgba(0, 0, 0, 0.12);
-        box-shadow: inset 0 0 0 1.5px rgba(0, 0, 0, 0.65);
+        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.65);
       }
 
       .toolbar__color-dot {
-        width: 12px;
-        height: 12px;
+        width: 10px;
+        height: 10px;
         border-radius: 50%;
         border: 1px solid rgba(0, 0, 0, 0.3);
         box-sizing: border-box;
@@ -158,12 +159,12 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 14px;
-        height: 14px;
+        width: 12px;
+        height: 12px;
 
         .size-bar {
-          width: 12px;
-          border-radius: 2px;
+          width: 10px;
+          border-radius: 1px;
           background-color: #334155;
         }
       }

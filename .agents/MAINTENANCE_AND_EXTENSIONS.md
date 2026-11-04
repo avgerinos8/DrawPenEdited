@@ -105,3 +105,43 @@ Because `palmMinContactLength = 35` and `palmMinContactArea = 2000`, normal fing
    - In `DrawDesk.js`, replace the inline `isTemporaryEraser` evaluation with `shouldTreatAsEraser(event, drawWithTouchEnabled)`.
    - Modifies only 1-2 lines in `DrawDesk.js`, ensuring zero upstream merge conflicts.
 
+---
+
+## 4. Feature 3: Ultra-Compact Top-Right Docked Toolbar (40px Height)
+
+### 4.1 Requirements & Design
+1. **Dimensions & Geometry:**
+   - Overall toolbar height is exactly **40px**; overall toolbar width is **210px**.
+   - Left handle: 30px width × 40px height for dragging and pointer-mode toggling.
+   - Grid area: 180px width × 40px height (2 rows × 9 columns).
+   - Button footprint: Each button is **20px width × 14px height**, compactly centered in each 19px row.
+   - Clear All button: Dedicated red button (`#DC2626`, `Icons.Trash`) executing desk reset immediately (identical to physical key `S`).
+2. **Top-Right Docking (Left of Window Controls):**
+   - Positioned cleanly at `x = windowWidth - toolbarWidth - 150`, `y = 8` to rest immediately to the left of Windows minimize / maximize / close buttons.
+   - Free dragging supported with magnetic snapping back to the top-right anchor.
+   - "Bottom-Left" and taskbar dock options completely removed from user settings and tray menu.
+3. **Zero OS Window Overhead (OLED Burn-in Protection):**
+   - No floating desktop OS window exists when DrawPen is closed (`disable_toolbar_in_pointer_mode = true`).
+   - The toolbar is exclusively an HTML DOM component rendered inside `mainWindow` and appears only when `Ctrl+Shift+A` activates the app.
+
+---
+
+## 5. Feature 4: "Start with Windows" (Minimized to Tray Icon)
+
+### 5.1 Requirements & Implementation
+1. **Settings Toggle:**
+   - Added user option titled **"Start with Windows"** with description **"Launch minimized to system tray icon"**.
+2. **System Integration:**
+   - Configures Electron login items via `app.setLoginItemSettings({ openAtLogin: true, openAsHidden: true, args: ['--hidden'] })`.
+   - Sets `starts_hidden = true` and checks `process.argv.includes('--hidden')` or `safeWasOpenedAtLogin()` during boot.
+   - Guarantees silent startup directly to the Windows system tray without popping up windows or stealing focus.
+
+---
+
+## 6. Feature 5: Language-Independent Keyboard Shortcuts
+
+### 6.1 Implementation Details
+- Uses physical key codes (`event.code`: `KeyS` -> `'s'`, `KeyX` -> `'x'`, `KeyB` -> `'b'`, etc.) rather than localized characters (`event.key`).
+- Ensures shortcuts (`S` to clear, `X` to cycle colors, `B` for brush, etc.) function seamlessly regardless of whether the Windows input layout is Greek, English, or any other layout.
+
+

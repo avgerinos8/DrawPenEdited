@@ -2,9 +2,11 @@ import React, { useEffect, useState, useCallback, useRef } from "react"
 import "./ToolBar.scss"
 import { widthList } from "../constants.js"
 
-const TOOLBAR_WIDTH = 220
-const TOOLBAR_HEIGHT = 60
-const HANDLE_WIDTH = 40
+const TOOLBAR_WIDTH = 210
+const TOOLBAR_HEIGHT = 40
+const HANDLE_WIDTH = 30
+const WINDOW_CONTROLS_OFFSET = 150
+const TOOLBAR_MARGIN_TOP = 8
 const SNAP_THRESHOLD = 30
 
 const ToolBar = ({
@@ -117,15 +119,18 @@ const ToolBar = ({
 
     const currentWidth = isCollapsed ? HANDLE_WIDTH : TOOLBAR_WIDTH
     const minX = 10
-    const minY = 0
+    const minY = TOOLBAR_MARGIN_TOP
     const maxX = Math.max(minX, window.innerWidth - currentWidth - 10)
-    const maxY = Math.max(0, window.innerHeight - TOOLBAR_HEIGHT)
+    const maxY = Math.max(minY, window.innerHeight - TOOLBAR_HEIGHT - 10)
 
     let clampedX = Math.min(Math.max(newX, minX), maxX)
     let clampedY = Math.min(Math.max(newY, minY), maxY)
 
-    if (clampedX <= minX + SNAP_THRESHOLD) clampedX = minX
-    if (clampedY >= maxY - SNAP_THRESHOLD) clampedY = maxY
+    const targetTopRightX = Math.max(minX, window.innerWidth - currentWidth - WINDOW_CONTROLS_OFFSET)
+    if (Math.abs(newX - targetTopRightX) <= SNAP_THRESHOLD && Math.abs(newY - TOOLBAR_MARGIN_TOP) <= SNAP_THRESHOLD) {
+      clampedX = targetTopRightX
+      clampedY = TOOLBAR_MARGIN_TOP
+    }
 
     setPosition({ x: Math.round(clampedX), y: Math.round(clampedY) })
   }, [dragging, offset, isCollapsed, setPosition])

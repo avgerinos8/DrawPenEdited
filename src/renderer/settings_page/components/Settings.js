@@ -66,7 +66,7 @@ const Settings = (config) => {
   const [disableToolbarInPointerMode, setDisableToolbarInPointerMode] = useState(config.disable_toolbar_in_pointer_mode);
   const [toolbarOrientation, setToolbarOrientation] = useState(config.tool_bar_orientation);
   const [drawWithTouch, setDrawWithTouch] = useState(config.draw_with_touch ?? true)
-  const [toolbarDock, setToolbarDock] = useState(config.tool_bar_dock || 'bottom-left')
+  const [toolbarDock, setToolbarDock] = useState(config.tool_bar_dock || 'top-right')
   const [screenshotDirectory, setScreenshotDirectory] = useState({ path: config.screenshot_directory, isDefault: config.screenshot_directory_is_default });
 
   const [showHideApp, setShowHideApp]               = useState({ accelerator: config.key_binding_show_hide_app,        init: config.key_binding_show_hide_app_default });
@@ -188,11 +188,14 @@ const Settings = (config) => {
   };
 
   const toggleLaunch = () => {
-    const nextState = !launchOnLogin;
-    setLaunchOnLogin(nextState);
-
-    window.electronAPI.setLaunchOnLogin(nextState);
-  };
+    const nextState = !launchOnLogin
+    setLaunchOnLogin(nextState)
+    if (nextState) {
+      setStartsHidden(true)
+      window.electronAPI.setStartsHidden(true)
+    }
+    window.electronAPI.setLaunchOnLogin(nextState)
+  }
 
   const toggleStartsHidden = () => {
     const nextState = !startsHidden;
@@ -719,7 +722,7 @@ const Settings = (config) => {
                         value={toolbarDock}
                         onChange={selectToolbarDock}
                       >
-                        <option value="bottom-left">Bottom-Left (Docked)</option>
+                        <option value="top-right">Top-Right (Docked)</option>
                         <option value="none">Free Floating</option>
                       </select>
 
@@ -782,7 +785,8 @@ const Settings = (config) => {
 
                 <div className="settings-item">
                   <div className="settings-item-info">
-                    <div className="settings-item-title">Launch on system startup</div>
+                    <div className="settings-item-title">Start with Windows</div>
+                    <div className="settings-item-description">Launch minimized to system tray icon</div>
                   </div>
 
                   <div className="settings-item-control">
