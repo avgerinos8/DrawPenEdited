@@ -108,7 +108,7 @@ const Application = (settings) => {
   const calculateInitialToolbarPosition = () => {
     return getBottomLeftPosition(window.innerHeight)
   }
-  const initialToolbarPosition = settings.tool_bar_dock === 'none' && settings.tool_bar_x !== 10
+  const initialToolbarPosition = settings.tool_bar_dock === 'none' && settings.tool_bar_y < window.innerHeight - 70
     ? { x: settings.tool_bar_x, y: settings.tool_bar_y }
     : calculateInitialToolbarPosition()
   const [initialMainColorIndex, initialSecondaryColorIndex] = settings.swap_colors_indexes
@@ -2046,6 +2046,7 @@ const Application = (settings) => {
             handleClearDesk={handleReset}
             handleEnablePointerMode={handleEnablePointerMode}
             handlePositionCommit={invokeCommitToolbarPosition}
+            handleToggleWhiteboard={handleToggleWhiteboard}
             Icons={Icons}
             colorList={colorList}
           />

@@ -108,11 +108,11 @@ const schema = {
   },
   tool_bar_x: {
     type: 'number',
-    default: 10
+    default: 0
   },
   tool_bar_y: {
     type: 'number',
-    default: 842
+    default: 900
   },
   tool_bar_active_tool: {
     type: 'string',
@@ -290,14 +290,13 @@ function getTrayIconPath() {
 
 function getDockCoordinates(_dockMode, display) {
   const currentDisplay = display || getLockedMonitor() || getActiveMonitor() || getUnderCursorMonitor()
-  if (!currentDisplay) return { x: 10, y: 10 }
-  const workArea = currentDisplay.workArea
+  if (!currentDisplay) return { x: 0, y: 0 }
+  const bounds = currentDisplay.bounds
   const toolbarHeight = 60
-  const margin = 10
 
   return {
-    x: margin,
-    y: Math.max(margin, workArea.height - toolbarHeight - margin)
+    x: 0,
+    y: Math.max(0, bounds.height - toolbarHeight)
   }
 }
 
@@ -471,7 +470,7 @@ function createMainWindow() {
     store.set('active_monitor_id', currentDisplay.id)
   }
 
-  let { x: displayX, y: displayY, width: displayWidth, height: displayHeight } = currentDisplay.workArea
+  let { x: displayX, y: displayY, width: displayWidth, height: displayHeight } = currentDisplay.bounds
 
   let isResizable = false
   let hasDevTools = false
@@ -507,9 +506,9 @@ function createMainWindow() {
     }
   })
 
-  mainWindow.loadURL(APP_WINDOW_WEBPACK_ENTRY);
-  mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
-  mainWindow.setAlwaysOnTop(true)
+  mainWindow.loadURL(APP_WINDOW_WEBPACK_ENTRY)
+  mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+  mainWindow.setAlwaysOnTop(true, 'screen-saver')
 
   mainWindow.on('close', function (event) {
     rawLog('Main window: on close')
@@ -572,8 +571,8 @@ function createExtendedToolbarWindow() {
   })
 
   extendedToolbarWindow.loadURL(EXTENDED_TOOLBAR_WINDOW_WEBPACK_ENTRY)
-  extendedToolbarWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
-  extendedToolbarWindow.setAlwaysOnTop(true)
+  extendedToolbarWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+  extendedToolbarWindow.setAlwaysOnTop(true, 'screen-saver')
 
   extendedToolbarWindow.on('close', function (event) {
     rawLog('Extended toolbar window: on close')
@@ -1802,7 +1801,7 @@ function storeToolbarPositionFromExtendedWindow() {
   const currentDisplay = getLockedMonitor() || getUnderToolbarMonitor()
   if (!currentDisplay) return;
 
-  const { x: displayX, y: displayY } = currentDisplay.workArea
+  const { x: displayX, y: displayY } = currentDisplay.bounds
   const { x: extToolBarX, y: extToolBarY } = extendedToolbarWindow.getBounds()
 
   const toolBarX = extToolBarX - displayX + EXTENDED_TOOLBAR_WINDOW_MARGIN
@@ -1863,7 +1862,7 @@ function updateMainWindowPosition(display) {
     return
   }
 
-  mainWindow.setBounds(display.workArea)
+  mainWindow.setBounds(display.bounds)
 
   if (isDevelopment) {
     mainWindow.setBounds({
@@ -1906,7 +1905,7 @@ function getExtendedToolbarWindowSize() {
 }
 
 function updateExtendedToolbarWindowPosition(display) {
-  const { x: displayX, y: displayY } = display.workArea
+  const { x: displayX, y: displayY } = display.bounds
 
   extendedToolbarWindow.setBounds({
     x: displayX + store.get('tool_bar_x') - EXTENDED_TOOLBAR_WINDOW_MARGIN,

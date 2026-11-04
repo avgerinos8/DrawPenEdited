@@ -28,27 +28,27 @@ To pull upstream updates without merge conflicts, adhere to the following princi
 
 ---
 
-## 2. Implemented Feature 1: Compact 300x60 2-Row Toolbar & Bottom-Left Docking
+## 2. Implemented Feature 1: Ultra-Compact 220x60 Toolbar (20x30 Icons), Clear All & Taskbar Overlay
 
 ### 2.1 Requirements & Specifications
-1. **Dimensions (Strictly 300px width × 60px height):**
-   - Left side: 40px width × 60px height main handle icon (`.toolbar__handle`).
-     - Functions as the drag-and-drop handle for the entire toolbar.
-     - Clicking toggles pointer mode / expands the toolbar when collapsed.
-   - Right side: 260px width × 60px height 2-row tool grid (`.toolbar__grid`).
-     - Row 1 (30px height): Pen, Brush, Fade Pen, Highlighter, Arrow, Rectangle, Oval, Line.
-     - Row 2 (30px height): Text, Laser, Eraser, Active Color picker/cycler, Stroke Width picker/cycler, Diamond, Clear Desk (Trash), Collapse.
-   - All 16 tools immediately accessible with 1 click; no awkward slide animations or hidden menus.
-   - Icons are small (15px) with vibrant distinct colors for rapid recognition.
-2. **Bottom-Left Docking (Resolution-Independent):**
-   - Automatically anchors at bottom-left corner across all screen resolutions:
-     - `x = 10`
-     - `y = workArea.height - 60 - 10`
-   - Magnetic snap when dragging within 30px of bottom-left.
-   - Full drag-and-drop movement anywhere across the display.
-3. **Pointer Mode Window (`extendedToolbarWindow`):**
-   - Displays identical 40px × 60px handle at bottom-left during pointer mode.
-   - Clicking expands smoothly into full 300x60px toolbar in drawing mode.
+1. **Dimensions (Ultra-Compact 220px width × 60px height):**
+   - Left side: 40px width × 60px height main handle (`.toolbar__handle`).
+     - Functions as drag handle and toggles Draw / Pointer Mode.
+   - Right side: 180px width × 60px height grid (`.toolbar__grid`):
+     - 2 rows × 9 columns.
+     - **Each icon button is exactly 20px width × 30px height** for minimal footprint.
+     - Row 1 (9 items): Pen (P), Brush (B), Fade Pen, Highlighter (H), Arrow (A), Flat Arrow, Rectangle (R), Oval (O), Line.
+     - Row 2 (9 items): Text (T), Laser (L), Eraser (E), **Clear All (S)**, Color swatch, Stroke Width, Diamond (D), Whiteboard (E), Collapse.
+     - **Clear All Button:** Prominent red button that triggers desk reset (`handleReset()`), equivalent to shortcut `S`.
+     - Distinct vivid icon colors for immediate recognition.
+2. **True Taskbar Overlay Architecture:**
+   - Previously windows used `display.workArea`, which Windows strictly stops at the top edge of the taskbar (e.g. at y = 912).
+   - Solution:
+     - Windows now bound to `display.bounds` (spanning full height e.g. 0 to 960).
+     - Applied `setAlwaysOnTop(true, 'screen-saver')` to both `mainWindow` and `extendedToolbarWindow`.
+     - This elevates windows into the system screen-saver Z-band, rendering **directly on top of the Windows taskbar**.
+     - Default coordinates: `x = 0`, `y = display.bounds.height - 60` (resting directly on top of the taskbar at bottom-left).
+     - Magnetic snapping to `x = 0, y = maxY` on drag-and-drop.
 
 ### 2.2 Modular Architecture
 - Implementation isolated in `src/renderer/extensions/dockManager.js`.

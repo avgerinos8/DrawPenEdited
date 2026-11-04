@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useCallback, useRef } from "react"
 import "./ToolBar.scss"
-import { widthList, toolbarViewportMargin } from "../constants.js"
+import { widthList } from "../constants.js"
 
-const TOOLBAR_WIDTH = 300
+const TOOLBAR_WIDTH = 220
 const TOOLBAR_HEIGHT = 60
 const HANDLE_WIDTH = 40
 const SNAP_THRESHOLD = 30
@@ -21,6 +21,7 @@ const ToolBar = ({
   handleClearDesk,
   handleEnablePointerMode,
   handlePositionCommit,
+  handleToggleWhiteboard,
   Icons,
   colorList,
 }) => {
@@ -38,6 +39,7 @@ const ToolBar = ({
     { id: "fadepen", title: "Fade Pen", color: "#7C3AED", icon: <Icons.MagicPen /> },
     { id: "highlighter", title: "Highlighter (H)", color: "#D97706", icon: <Icons.Highlighter /> },
     { id: "arrow", title: "Arrow (A)", color: "#EA580C", icon: <Icons.Arrow /> },
+    { id: "flat_arrow", title: "Flat Arrow", color: "#C2410C", icon: <Icons.FlatArrow /> },
     { id: "rectangle", title: "Rectangle (R)", color: "#16A34A", icon: <Icons.Rectangle /> },
     { id: "oval", title: "Oval (O)", color: "#DB2777", icon: <Icons.Oval /> },
     { id: "line", title: "Line", color: "#4F46E5", icon: <Icons.Line /> },
@@ -45,11 +47,18 @@ const ToolBar = ({
 
   const toolsRow2 = [
     { id: "text", title: "Text (T)", color: "#0891B2", icon: <Icons.Text /> },
-    { id: "laser", title: "Laser (L)", color: "#DC2626", icon: <Icons.Laser /> },
+    { id: "laser", title: "Laser (L)", color: "#EF4444", icon: <Icons.Laser /> },
     { id: "eraser", title: "Eraser (E)", color: "#E11D48", icon: <Icons.Eraser /> },
     {
+      id: "clearAll",
+      title: "Clear All (S) - Clear drawings",
+      color: "#DC2626",
+      icon: <Icons.Trash />,
+      action: handleClearDesk,
+    },
+    {
       id: "color",
-      title: `Color (X): ${activeColor.title || ""}`,
+      title: `Color (X): ${activeColor.title || ""} - click to change`,
       customRender: () => (
         <div
           className={`toolbar__color-dot ${activeColor.isRainbow ? "color-rainbow" : ""}`}
@@ -60,7 +69,7 @@ const ToolBar = ({
     },
     {
       id: "brushSize",
-      title: `Size: ${widthList[activeWidthIndex]?.title || ""}`,
+      title: `Size: ${widthList[activeWidthIndex]?.title || ""} - click to change`,
       customRender: () => (
         <div className={`toolbar__size-indicator size-${activeWidthIndex}`}>
           <div className="size-bar" style={{ height: Math.max(2, (activeWidthIndex + 1) * 2) }} />
@@ -69,10 +78,16 @@ const ToolBar = ({
       action: () => handleChangeWidth((activeWidthIndex + 1) % widthList.length),
     },
     { id: "diamond", title: "Diamond (D)", color: "#059669", icon: <Icons.Diamond /> },
-    { id: "clearDesk", title: "Clear Desk (S)", color: "#B91C1C", icon: <Icons.Trash />, action: handleClearDesk },
+    {
+      id: "whiteboard",
+      title: "Whiteboard (E)",
+      color: "#0284C7",
+      icon: <Icons.DrawModeEnabled />,
+      action: handleToggleWhiteboard,
+    },
     {
       id: "collapse",
-      title: "Collapse (Mini)",
+      title: "Collapse Toolbar",
       color: "#64748B",
       icon: <Icons.AngleLeft />,
       action: () => setIsCollapsed(prev => !prev),
@@ -101,15 +116,15 @@ const ToolBar = ({
     const newY = e.clientY - offset.y
 
     const currentWidth = isCollapsed ? HANDLE_WIDTH : TOOLBAR_WIDTH
-    const minX = toolbarViewportMargin
-    const minY = toolbarViewportMargin
-    const maxX = Math.max(minX, window.innerWidth - currentWidth - toolbarViewportMargin)
-    const maxY = Math.max(minY, window.innerHeight - TOOLBAR_HEIGHT - toolbarViewportMargin)
+    const minX = 0
+    const minY = 0
+    const maxX = Math.max(0, window.innerWidth - currentWidth)
+    const maxY = Math.max(0, window.innerHeight - TOOLBAR_HEIGHT)
 
     let clampedX = Math.min(Math.max(newX, minX), maxX)
     let clampedY = Math.min(Math.max(newY, minY), maxY)
 
-    if (clampedX <= minX + SNAP_THRESHOLD) clampedX = minX
+    if (clampedX <= SNAP_THRESHOLD) clampedX = minX
     if (clampedY >= maxY - SNAP_THRESHOLD) clampedY = maxY
 
     setPosition({ x: Math.round(clampedX), y: Math.round(clampedY) })
