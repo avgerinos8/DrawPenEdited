@@ -33,9 +33,9 @@ const KEY_NULL                 = '[NULL]'
 
 const EXTENDED_TOOLBAR_WINDOW_MARGIN = 10
 const EXTENDED_TOOLBAR_WINDOW_PADDING = 5
-const EXTENDED_TOOLBAR_MODE_SWITCHER_WIDTH = 58
-const EXTENDED_TOOLBAR_MODE_SWITCHER_HEIGHT = 50
-const EXTENDED_TOOLBAR_SLIDER_SIZE = 18
+const EXTENDED_TOOLBAR_MODE_SWITCHER_WIDTH = 40
+const EXTENDED_TOOLBAR_MODE_SWITCHER_HEIGHT = 60
+const EXTENDED_TOOLBAR_SLIDER_SIZE = 0
 
 const EXTENDED_TOOLBAR_HORIZONTAL_WINDOW_SIZE = {
   width: EXTENDED_TOOLBAR_WINDOW_MARGIN + EXTENDED_TOOLBAR_MODE_SWITCHER_WIDTH + EXTENDED_TOOLBAR_SLIDER_SIZE + EXTENDED_TOOLBAR_WINDOW_PADDING,
@@ -100,7 +100,7 @@ const schema = {
   tool_bar_dock: {
     type: 'string',
     enum: ['none', 'bottom-left', 'above-start-menu'],
-    default: 'above-start-menu'
+    default: 'bottom-left'
   },
   draw_with_touch: {
     type: 'boolean',
@@ -108,11 +108,11 @@ const schema = {
   },
   tool_bar_x: {
     type: 'number',
-    default: 552
+    default: 10
   },
   tool_bar_y: {
     type: 'number',
-    default: 852
+    default: 842
   },
   tool_bar_active_tool: {
     type: 'string',
@@ -288,31 +288,16 @@ function getTrayIconPath() {
   return iconSrc.BLACK
 }
 
-function getDockCoordinates(dockMode, display) {
+function getDockCoordinates(_dockMode, display) {
   const currentDisplay = display || getLockedMonitor() || getActiveMonitor() || getUnderCursorMonitor()
   if (!currentDisplay) return { x: 10, y: 10 }
   const workArea = currentDisplay.workArea
-  const toolbarHeight = 50
-  const toolbarWidth = 432
+  const toolbarHeight = 60
   const margin = 10
 
-  if (dockMode === 'above-start-menu') {
-    return {
-      x: Math.max(margin, Math.round((workArea.width - toolbarWidth) / 2)),
-      y: Math.max(margin, workArea.height - toolbarHeight - margin)
-    }
-  }
-
-  if (dockMode === 'bottom-left') {
-    return {
-      x: margin,
-      y: Math.max(margin, workArea.height - toolbarHeight - margin)
-    }
-  }
-
   return {
-    x: store.get('tool_bar_x'),
-    y: store.get('tool_bar_y')
+    x: margin,
+    y: Math.max(margin, workArea.height - toolbarHeight - margin)
   }
 }
 

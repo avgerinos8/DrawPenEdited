@@ -28,20 +28,27 @@ To pull upstream updates without merge conflicts, adhere to the following princi
 
 ---
 
-## 2. Implemented Feature 1: Compact Redesigned Toolbar (Max 50px Height) & Docking
+## 2. Implemented Feature 1: Compact 300x60 2-Row Toolbar & Bottom-Left Docking
 
 ### 2.1 Requirements & Specifications
-1. **Unified Sleek Height (50px, strictly <= 60px):**
-   - Previous design had a stepped mismatch: mode switcher at 72px/60px and tools container at 44px.
-   - Redesigned to a unified 50px profile across all elements (`.toolbar__mode-switcher`, `.toolbar__container`, `.toolbar__slider`).
-   - Seamless floating pill aesthetic with soft modern drop-shadow and rounded borders.
-   - Slide transitions for subpanels (`brush-slide`, `tool-slide`, `color-slide`, `width-slide`) synchronized to 50px offsets.
-   - Matching styling and dimensions applied to `src/renderer/extended_toolbar_page/index.html`.
-2. **Docking (Above Start Menu & Bottom-Left):**
-   - Dock modes supported: `'above-start-menu'` (default), `'bottom-left'`, and `'none'` (free floating).
-   - In Windows 11 with centered taskbar, `'above-start-menu'` centers horizontally (`x = Math.round((workArea.width - toolbarWidth) / 2)`) and anchors 10px above the bottom taskbar boundary (`y = workArea.height - toolbarHeight - 10`).
-   - Automatic snapping when dragging near the horizontal center or bottom edges.
-   - Quick dock options available directly from Tray context menu and Settings page.
+1. **Dimensions (Strictly 300px width × 60px height):**
+   - Left side: 40px width × 60px height main handle icon (`.toolbar__handle`).
+     - Functions as the drag-and-drop handle for the entire toolbar.
+     - Clicking toggles pointer mode / expands the toolbar when collapsed.
+   - Right side: 260px width × 60px height 2-row tool grid (`.toolbar__grid`).
+     - Row 1 (30px height): Pen, Brush, Fade Pen, Highlighter, Arrow, Rectangle, Oval, Line.
+     - Row 2 (30px height): Text, Laser, Eraser, Active Color picker/cycler, Stroke Width picker/cycler, Diamond, Clear Desk (Trash), Collapse.
+   - All 16 tools immediately accessible with 1 click; no awkward slide animations or hidden menus.
+   - Icons are small (15px) with vibrant distinct colors for rapid recognition.
+2. **Bottom-Left Docking (Resolution-Independent):**
+   - Automatically anchors at bottom-left corner across all screen resolutions:
+     - `x = 10`
+     - `y = workArea.height - 60 - 10`
+   - Magnetic snap when dragging within 30px of bottom-left.
+   - Full drag-and-drop movement anywhere across the display.
+3. **Pointer Mode Window (`extendedToolbarWindow`):**
+   - Displays identical 40px × 60px handle at bottom-left during pointer mode.
+   - Clicking expands smoothly into full 300x60px toolbar in drawing mode.
 
 ### 2.2 Modular Architecture
 - Implementation isolated in `src/renderer/extensions/dockManager.js`.

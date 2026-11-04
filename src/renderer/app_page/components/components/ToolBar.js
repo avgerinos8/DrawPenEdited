@@ -1,43 +1,20 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
-import "./ToolBar.scss";
-import { drawingToolList, shapeList, widthList, shortcutHintHoldDelayMs, toolbarViewportMargin, updateStoreDelay } from "../constants.js";
+import React, { useEffect, useState, useCallback, useRef } from "react"
+import "./ToolBar.scss"
+import { widthList, toolbarViewportMargin } from "../constants.js"
 
-const STICKY_DISTANCE = 15;
-
-const humanizedKey = (key) => {
-  const keyMap = {
-    Meta: "⌘",
-    Control: "⌃",
-    Alt: "⌥",
-    Shift: "⇧",
-  };
-
-  return keyMap[key] || key;
-};
-
-const humanizedShortcut = (shortcut) => {
-  if (!shortcut) return null
-  if (shortcut === '[NULL]') return null
-
-  return shortcut.split("+").map(humanizedKey).join("");
-};
+const TOOLBAR_WIDTH = 300
+const TOOLBAR_HEIGHT = 60
+const HANDLE_WIDTH = 40
+const SNAP_THRESHOLD = 30
 
 const ToolBar = ({
-  orientation,
   position,
   setPosition,
-  toolbarSlide,
-  setToolbarSlide,
   isCollapsed,
   setIsCollapsed,
-  shortcutHintsDisabled,
-  clearDeskShortcut,
-  lastActiveBrush,
-  lastActiveFigure,
   activeTool,
   activeColorIndex,
   activeWidthIndex,
-  handleCloseToolBar,
   handleChangeColor,
   handleChangeWidth,
   handleChangeTool,
@@ -47,579 +24,186 @@ const ToolBar = ({
   Icons,
   colorList,
 }) => {
-  const toolConfig = {
-    brush:       { title: "Brush",       alias: "B", mainPanel: "1", subPanel: "1" },
-    pen:         { title: "Pen",         alias: "P", mainPanel: "1", subPanel: "2" },
-    fadepen:     { title: "Fade Pen",    alias: "P", mainPanel: "1", subPanel: "3" },
-    arrow:       { title: "Arrow",       alias: "A", mainPanel: "2", subPanel: "1" },
-    flat_arrow:  { title: "Flat Arrow",  alias: "A", mainPanel: "2", subPanel: "2" },
-    rectangle:   { title: "Rectangle",   alias: "R", mainPanel: "2", subPanel: "3" },
-    diamond:     { title: "Diamond",     alias: "D", mainPanel: "2", subPanel: "4" },
-    oval:        { title: "Oval",        alias: "O", mainPanel: "2", subPanel: "5" },
-    line:        { title: "Line",                    mainPanel: "2", subPanel: "6" },
-    text:        { title: "Text",        alias: "T", mainPanel: "3" },
-    highlighter: { title: "Highlighter", alias: "H", mainPanel: "4" },
-    laser:       { title: "Laser",       alias: "L", mainPanel: "5" },
-    eraser:      { title: "Eraser",      alias: "E", mainPanel: "6" },
-    color:       { title: "Color",       alias: "X", mainPanel: "7", disabledFor: ["laser", "eraser"] },
-    brushSize:   { title: "Brush Size",              mainPanel: "8" },
-    clearDesk:   { title: "Clear Desk",  alias: "S", mainPanel: "S" },
-  };
+  const [dragging, setDragging] = useState(false)
+  const [offset, setOffset] = useState({ x: 0, y: 0 })
+  const toolbarRef = useRef(null)
+  const dragStartPosRef = useRef({ x: 0, y: 0 })
+  const dragDistanceRef = useRef(0)
 
-  const allIcons = {
-    brush: <Icons.Brush />,
-    pen: <Icons.Pen />,
-    fadepen: <Icons.MagicPen />,
-    arrow: <Icons.Arrow />,
-    flat_arrow: <Icons.FlatArrow />,
-    rectangle: <Icons.Rectangle />,
-    diamond: <Icons.Diamond />,
-    oval: <Icons.Oval />,
-    line: <Icons.Line />,
-    text: <Icons.Text />,
-    highlighter: <Icons.Highlighter />,
-    laser: <Icons.Laser />,
-    eraser: <Icons.Eraser />,
-  };
+  const activeColor = colorList[activeColorIndex] || colorList[0] || { color: "#529BE0", title: "Blue" }
 
-  const activeColor = colorList[activeColorIndex];
+  const toolsRow1 = [
+    { id: "pen", title: "Pen (P)", color: "#2563EB", icon: <Icons.Pen /> },
+    { id: "brush", title: "Brush (B)", color: "#0D9488", icon: <Icons.Brush /> },
+    { id: "fadepen", title: "Fade Pen", color: "#7C3AED", icon: <Icons.MagicPen /> },
+    { id: "highlighter", title: "Highlighter (H)", color: "#D97706", icon: <Icons.Highlighter /> },
+    { id: "arrow", title: "Arrow (A)", color: "#EA580C", icon: <Icons.Arrow /> },
+    { id: "rectangle", title: "Rectangle (R)", color: "#16A34A", icon: <Icons.Rectangle /> },
+    { id: "oval", title: "Oval (O)", color: "#DB2777", icon: <Icons.Oval /> },
+    { id: "line", title: "Line", color: "#4F46E5", icon: <Icons.Line /> },
+  ]
 
-  const [dragging, setDragging] = useState(false);
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const [showShortcutHints, setShowShortcutHints] = useState(false);
-  const [shortcutHintRevealCount, setShortcutHintRevealCount] = useState(0);
+  const toolsRow2 = [
+    { id: "text", title: "Text (T)", color: "#0891B2", icon: <Icons.Text /> },
+    { id: "laser", title: "Laser (L)", color: "#DC2626", icon: <Icons.Laser /> },
+    { id: "eraser", title: "Eraser (E)", color: "#E11D48", icon: <Icons.Eraser /> },
+    {
+      id: "color",
+      title: `Color (X): ${activeColor.title || ""}`,
+      customRender: () => (
+        <div
+          className={`toolbar__color-dot ${activeColor.isRainbow ? "color-rainbow" : ""}`}
+          style={{ backgroundColor: activeColor.color }}
+        />
+      ),
+      action: () => handleChangeColor((activeColorIndex + 1) % colorList.length),
+    },
+    {
+      id: "brushSize",
+      title: `Size: ${widthList[activeWidthIndex]?.title || ""}`,
+      customRender: () => (
+        <div className={`toolbar__size-indicator size-${activeWidthIndex}`}>
+          <div className="size-bar" style={{ height: Math.max(2, (activeWidthIndex + 1) * 2) }} />
+        </div>
+      ),
+      action: () => handleChangeWidth((activeWidthIndex + 1) % widthList.length),
+    },
+    { id: "diamond", title: "Diamond (D)", color: "#059669", icon: <Icons.Diamond /> },
+    { id: "clearDesk", title: "Clear Desk (S)", color: "#B91C1C", icon: <Icons.Trash />, action: handleClearDesk },
+    {
+      id: "collapse",
+      title: "Collapse (Mini)",
+      color: "#64748B",
+      icon: <Icons.AngleLeft />,
+      action: () => setIsCollapsed(prev => !prev),
+    },
+  ]
 
-  const toolbarRef = useRef();
-  const shortcutHintTimerRef = useRef(null);
-  const positionCommitTimeoutRef = useRef(null);
-
-  const clearShortcutHintTimer = useCallback(() => {
-    if (!shortcutHintTimerRef.current) return;
-
-    clearTimeout(shortcutHintTimerRef.current);
-    shortcutHintTimerRef.current = null;
-  }, []);
-
-  const hideShortcutHints = useCallback(() => {
-    clearShortcutHintTimer();
-    setShowShortcutHints(false);
-  }, [clearShortcutHintTimer]);
-
-  const handleShortcutHintKeyDown = useCallback((event) => {
-    const eventRepeat = event.repeat;
-
-    if (event.key !== "Meta" && event.key !== "Control") {
-      hideShortcutHints();
-      return;
-    }
-
-    if (eventRepeat) return;
-
-    const hasOtherModifier = event.altKey || event.shiftKey || (event.ctrlKey && event.metaKey);
-
-    if (hasOtherModifier || shortcutHintsDisabled || isCollapsed) {
-      hideShortcutHints();
-      return;
-    }
-
-    clearShortcutHintTimer();
-    shortcutHintTimerRef.current = setTimeout(() => {
-      shortcutHintTimerRef.current = null;
-      setShortcutHintRevealCount((count) => count + 1);
-      setShowShortcutHints(true);
-    }, shortcutHintHoldDelayMs);
-  }, [clearShortcutHintTimer, hideShortcutHints, isCollapsed, shortcutHintsDisabled]);
-
-  const handleShortcutHintKeyUp = useCallback((event) => {
-    if (event.metaKey) return;
-    if (event.ctrlKey) return;
-
-    hideShortcutHints();
-  }, [hideShortcutHints]);
-
-  const clampPosition = useCallback((x, y, withSticky = false) => {
-    const toInt = (value) => Math.trunc(value);
-
-    if (!toolbarRef.current) {
-      return { x: toInt(x), y: toInt(y) };
-    }
-
-    const toolbarWidth = toolbarRef.current.offsetWidth;
-    const toolbarHeight = toolbarRef.current.offsetHeight;
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
-
-    const minX = toolbarViewportMargin;
-    const minY = toolbarViewportMargin;
-    const maxX = Math.max(toolbarViewportMargin, windowWidth - toolbarViewportMargin - toolbarWidth);
-    const maxY = Math.max(toolbarViewportMargin, windowHeight - toolbarViewportMargin - toolbarHeight);
-
-    if (!withSticky) {
-      return {
-        x: toInt(Math.min(Math.max(x, minX), maxX)),
-        y: toInt(Math.min(Math.max(y, minY), maxY)),
-      };
-    }
-
-    const leftEdge = STICKY_DISTANCE + toolbarViewportMargin;
-    const topEdge = STICKY_DISTANCE + toolbarViewportMargin;
-    const rightEdge = windowWidth - toolbarViewportMargin - STICKY_DISTANCE;
-    const bottomEdge = windowHeight - toolbarViewportMargin - STICKY_DISTANCE;
-
-    let nextX = x;
-    let nextY = y;
-
-    const centerX = Math.round((windowWidth - toolbarWidth) / 2)
-    if (nextX < leftEdge) {
-      nextX = minX
-    } else if (nextX + toolbarWidth > rightEdge) {
-      nextX = maxX
-    } else if (Math.abs(nextX - centerX) <= STICKY_DISTANCE * 2) {
-      nextX = centerX
-    }
-
-    if (nextY < topEdge) {
-      nextY = minY;
-    } else if (nextY + toolbarHeight > bottomEdge) {
-      nextY = maxY;
-    }
-
-    return { x: toInt(nextX), y: toInt(nextY) };
-  }, []);
-
-  const onPointerDown = (e) => {
-    setDragging(true);
+  const handlePointerDown = (e) => {
+    if (e.button !== 0) return
+    dragStartPosRef.current = { x: e.clientX, y: e.clientY }
+    dragDistanceRef.current = 0
+    setDragging(true)
     setOffset({
       x: e.clientX - position.x,
       y: e.clientY - position.y,
-    });
-  };
+    })
+  }
 
-  const onPointerMove = useCallback((e) => {
-    if (!dragging) return;
+  const handlePointerMove = useCallback((e) => {
+    if (!dragging) return
 
-    const newX = e.clientX - offset.x;
-    const newY = e.clientY - offset.y;
+    const dx = Math.abs(e.clientX - dragStartPosRef.current.x)
+    const dy = Math.abs(e.clientY - dragStartPosRef.current.y)
+    dragDistanceRef.current = Math.max(dragDistanceRef.current, dx + dy)
 
-    setPosition(clampPosition(newX, newY, true));
-  }, [dragging, offset, clampPosition, setPosition]);
+    const newX = e.clientX - offset.x
+    const newY = e.clientY - offset.y
 
-  const onPointerUp = useCallback(() => {
-    if (!dragging) return;
+    const currentWidth = isCollapsed ? HANDLE_WIDTH : TOOLBAR_WIDTH
+    const minX = toolbarViewportMargin
+    const minY = toolbarViewportMargin
+    const maxX = Math.max(minX, window.innerWidth - currentWidth - toolbarViewportMargin)
+    const maxY = Math.max(minY, window.innerHeight - TOOLBAR_HEIGHT - toolbarViewportMargin)
 
-    clearTimeout(positionCommitTimeoutRef.current);
+    let clampedX = Math.min(Math.max(newX, minX), maxX)
+    let clampedY = Math.min(Math.max(newY, minY), maxY)
 
-    handlePositionCommit(position);
-    setDragging(false);
-  }, [dragging, position, handlePositionCommit]);
+    if (clampedX <= minX + SNAP_THRESHOLD) clampedX = minX
+    if (clampedY >= maxY - SNAP_THRESHOLD) clampedY = maxY
+
+    setPosition({ x: Math.round(clampedX), y: Math.round(clampedY) })
+  }, [dragging, offset, isCollapsed, setPosition])
+
+  const handlePointerUp = useCallback(() => {
+    if (!dragging) return
+    setDragging(false)
+    handlePositionCommit(position)
+  }, [dragging, position, handlePositionCommit])
 
   useEffect(() => {
-    setPosition((prev) => clampPosition(prev.x, prev.y));
-  }, [position.x, position.y, clampPosition, setPosition]);
-
-  useEffect(() => {
-    clearTimeout(positionCommitTimeoutRef.current);
-
-    if (dragging) return;
-
-    positionCommitTimeoutRef.current = setTimeout(() => {
-      handlePositionCommit(position);
-    }, updateStoreDelay);
+    if (!dragging) return
+    window.addEventListener("pointermove", handlePointerMove)
+    window.addEventListener("pointerup", handlePointerUp)
+    window.addEventListener("pointercancel", handlePointerUp)
 
     return () => {
-      clearTimeout(positionCommitTimeoutRef.current);
-    };
-  }, [position.x, position.y, dragging, handlePositionCommit]);
-
-  useEffect(() => {
-    const toolbarElement = toolbarRef.current;
-    if (!toolbarElement) {
-      return;
+      window.removeEventListener("pointermove", handlePointerMove)
+      window.removeEventListener("pointerup", handlePointerUp)
+      window.removeEventListener("pointercancel", handlePointerUp)
     }
+  }, [dragging, handlePointerMove, handlePointerUp])
 
-    let frameId = null;
-
-    const applyClamp = () => {
-      setPosition((prev) => {
-        const clamped = clampPosition(prev.x, prev.y);
-        if (clamped.x === prev.x && clamped.y === prev.y) {
-          return prev;
-        }
-
-        return clamped;
-      });
-    };
-
-    const scheduleClamp = () => {
-      if (frameId) {
-        return;
-      }
-
-      frameId = requestAnimationFrame(() => {
-        frameId = null;
-        applyClamp();
-      });
-    };
-
-    const resizeObserver = new ResizeObserver(scheduleClamp);
-    resizeObserver.observe(toolbarElement);
-
-    scheduleClamp();
-    // window.addEventListener("resize", scheduleClamp);
-
-    return () => {
-      if (frameId) {
-        cancelAnimationFrame(frameId);
-      }
-
-      resizeObserver.disconnect();
-      // window.removeEventListener("resize", scheduleClamp);
-    };
-  }, [clampPosition, setPosition]);
-
-  useEffect(() => {
-    window.addEventListener("pointermove", onPointerMove);
-    window.addEventListener("pointerup", onPointerUp);
-    window.addEventListener("pointercancel", onPointerUp);
-
-    return () => {
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", onPointerUp);
-      window.removeEventListener("pointercancel", onPointerUp);
-    };
-  }, [onPointerMove, onPointerUp]);
-
-  useEffect(() => {
-    window.addEventListener("keydown", handleShortcutHintKeyDown);
-    window.addEventListener("keyup", handleShortcutHintKeyUp);
-    window.addEventListener("blur", hideShortcutHints);
-    document.addEventListener("visibilitychange", hideShortcutHints);
-
-    return () => {
-      window.removeEventListener("keydown", handleShortcutHintKeyDown);
-      window.removeEventListener("keyup", handleShortcutHintKeyUp);
-      window.removeEventListener("blur", hideShortcutHints);
-      document.removeEventListener("visibilitychange", hideShortcutHints);
-      clearShortcutHintTimer();
-    };
-  }, [clearShortcutHintTimer, handleShortcutHintKeyDown, handleShortcutHintKeyUp, hideShortcutHints]);
-
-  useEffect(() => {
-    if (!shortcutHintsDisabled && !isCollapsed) return;
-
-    hideShortcutHints();
-  }, [hideShortcutHints, isCollapsed, shortcutHintsDisabled]);
-
-  const pickTool = (tool) => {
-    handleChangeTool(tool);
-    setToolbarSlide("main-slide")
-  };
-
-  const onChangeColor = (index) => {
-    handleChangeColor(index);
-    setToolbarSlide("main-slide")
-  };
-
-  const onChangeWidth = (index) => {
-    handleChangeWidth(index);
-    setToolbarSlide("main-slide")
-  };
-
-  const renderShortcutTitle = (title, ...shortcuts) => {
-    const titleShortcuts = shortcuts.filter(Boolean);
-
-    return titleShortcuts.length ? `${title} — ${titleShortcuts.join(" or ")}` : title;
-  };
-
-  const renderToolTitle = (tool, shortcutType) => {
-    const config = toolConfig[tool];
-
-    return renderShortcutTitle(config.title, config.alias, config[shortcutType]);
-  };
-
-  const pickFigureOrSwitchView = () => {
-    if (shapeList.includes(activeTool)) {
-      setToolbarSlide("tool-slide");
+  const handleMainButtonClick = () => {
+    if (dragDistanceRef.current > 5) return
+    if (isCollapsed) {
+      setIsCollapsed(false)
     } else {
-      pickTool(lastActiveFigure);
+      handleEnablePointerMode()
     }
-  };
-
-  const pickBrushOrSwitchView = () => {
-    if (drawingToolList.includes(activeTool)) {
-      setToolbarSlide("brush-slide");
-    } else {
-      pickTool(lastActiveBrush);
-    }
-  };
-
-  const handleToggleCollapsed = () => {
-    setIsCollapsed((prev) => !prev);
-  };
-
-  const renderToolShortcutHint = (tool, shortcutType) => {
-    const config = toolConfig[tool];
-    const shortcut = config[shortcutType];
-
-    if (!config.alias) return shortcut;
-    if (shortcutHintRevealCount % 2 === 0) return config.alias;
-
-    return shortcut;
-  };
-
-  const isColorControlDisabled = toolConfig.color.disabledFor.includes(activeTool);
-  const areShortcutHintsVisible = showShortcutHints && !shortcutHintsDisabled && !isCollapsed;
+  }
 
   return (
     <aside
       id="toolbar"
       ref={toolbarRef}
-      className={`
-        toolbar--${orientation}
-        ${toolbarSlide}
-        ${isCollapsed ? "toolbar--collapsed" : ""}
-        ${areShortcutHintsVisible ? "toolbar--shortcut-hints-visible" : ""}
-      `}
+      className={`toolbar--compact ${isCollapsed ? "toolbar--collapsed" : ""}`}
       style={{ left: position.x, top: position.y }}
     >
-      <div className="toolbar__mode-switcher">
-        <div className="toolbar__draglines" onPointerDown={onPointerDown}>
-          <div className="draglines">
-            <div />
-            <div />
-            <div />
-            <div />
-            <div />
-            <div />
-          </div>
+      <div
+        className="toolbar__handle"
+        onPointerDown={handlePointerDown}
+        onClick={handleMainButtonClick}
+        title={isCollapsed ? "Click to Expand • Drag to Move" : "Pointer Mode • Drag to Move"}
+      >
+        <div className="handle__grip">
+          <div className="grip-dot" />
+          <div className="grip-dot" />
+          <div className="grip-dot" />
+          <div className="grip-dot" />
+          <div className="grip-dot" />
+          <div className="grip-dot" />
         </div>
-
-        <div className="toolbar__main-button">
-          <button tabIndex={-1} title="Pointer Mode" onClick={handleEnablePointerMode}>
-            <Icons.DrawModeEnabled />
-          </button>
-        </div>
-
-        <div className="toolbar__draglines" onPointerDown={onPointerDown}>
-          <div className="draglines">
-            <div />
-            <div />
-            <div />
-            <div />
-            <div />
-            <div />
-          </div>
+        <div className="handle__icon">
+          <Icons.DrawModeEnabled />
         </div>
       </div>
 
-      <div className="toolbar__container">
-        <div className="toolbar__panels-track">
-          <div className="toolbar__panel toolbar__panel--full">
-            <div className="toolbar__body">
-              <ul className="toolbar__items">
-                <li className={drawingToolList.includes(activeTool) ? "active more_figures" : undefined} onClick={() => pickBrushOrSwitchView()}>
-                  <button tabIndex={-1} title={renderToolTitle(lastActiveBrush, "mainPanel")}>
-                    {allIcons[lastActiveBrush]}
-                  </button>
-                  <div className="toolbar__shortcut-hint">
-                    {renderToolShortcutHint(lastActiveBrush, "mainPanel")}
-                  </div>
-                </li>
-                <li className={shapeList.includes(activeTool) ? "active more_figures" : undefined} onClick={() => pickFigureOrSwitchView()}>
-                  <button tabIndex={-1} title={renderToolTitle(lastActiveFigure, "mainPanel")}>
-                    {allIcons[lastActiveFigure]}
-                  </button>
-                  <div className="toolbar__shortcut-hint">
-                    {renderToolShortcutHint(lastActiveFigure, "mainPanel")}
-                  </div>
-                </li>
-                <li className={activeTool === "text" ? "active" : undefined} onClick={() => handleChangeTool("text")}>
-                  <button tabIndex={-1} title={renderToolTitle("text", "mainPanel")}>
-                    <Icons.Text />
-                  </button>
-                  <div className="toolbar__shortcut-hint">{renderToolShortcutHint("text", "mainPanel")}</div>
-                </li>
-                <li className={activeTool === "highlighter" ? "active" : undefined} onClick={() => handleChangeTool("highlighter")}>
-                  <button tabIndex={-1} title={renderToolTitle("highlighter", "mainPanel")}>
-                    <Icons.Highlighter />
-                  </button>
-                  <div className="toolbar__shortcut-hint">{renderToolShortcutHint("highlighter", "mainPanel")}</div>
-                </li>
-                <li className={activeTool === "laser" ? "active" : undefined} onClick={() => handleChangeTool("laser")}>
-                  <button tabIndex={-1} title={renderToolTitle("laser", "mainPanel")}>
-                    <Icons.Laser />
-                  </button>
-                  <div className="toolbar__shortcut-hint">{renderToolShortcutHint("laser", "mainPanel")}</div>
-                </li>
-                <li className={activeTool === "eraser" ? "active" : undefined} onClick={() => handleChangeTool("eraser")}>
-                  <button tabIndex={-1} title={renderToolTitle("eraser", "mainPanel")}>
-                    <Icons.Eraser />
-                  </button>
-                  <div className="toolbar__shortcut-hint">{renderToolShortcutHint("eraser", "mainPanel")}</div>
-                </li>
-                <li className="cross-line"></li>
-                <li onClick={() => !isColorControlDisabled && setToolbarSlide("color-slide")}>
-                  <button tabIndex={-1} className={`toolbar__color-picker ${activeColor.isRainbow ? 'color-rainbow' : ''} color_tool_${activeTool}`} style={{ backgroundColor: activeColor.color }} title={isColorControlDisabled ? renderToolTitle("color") : renderToolTitle("color", "mainPanel")} />
-                  {!isColorControlDisabled && <div className="toolbar__shortcut-hint">{renderToolShortcutHint("color", "mainPanel")}</div>}
-                </li>
-                <li onClick={() => setToolbarSlide("width-slide")}>
-                  <button tabIndex={-1} className={`toolbar__width-picker ${widthList[activeWidthIndex].name}`} title={renderToolTitle("brushSize", "mainPanel")}>
-                    <div />
-                  </button>
-                  <div className="toolbar__shortcut-hint">{renderToolShortcutHint("brushSize", "mainPanel")}</div>
-                </li>
-                <li className="cross-line"></li>
-                <li onClick={handleClearDesk}>
-                  <button tabIndex={-1} title={renderToolTitle("clearDesk", "mainPanel")}>
-                    <Icons.Trash />
-                  </button>
-                  {toolConfig.clearDesk.mainPanel && (
-                    <div className="toolbar__shortcut-hint">{renderToolShortcutHint("clearDesk", "mainPanel")}</div>
-                  )}
-                </li>
-              </ul>
-            </div>
-
-          <div className="side-view-body brush-group">
-            <ul className="toolbar__items">
-              <li className={activeTool === "brush" ? "active" : undefined} onClick={() => pickTool("brush")}>
-                <button tabIndex={-1} title={renderToolTitle("brush", "subPanel")}>
-                  <Icons.Brush />
-                </button>
-                <div className="toolbar__shortcut-hint">{renderToolShortcutHint("brush", "subPanel")}</div>
-              </li>
-              <li className={activeTool === "pen" ? "active" : undefined} onClick={() => pickTool("pen")}>
-                <button tabIndex={-1} title={renderToolTitle("pen", "subPanel")}>
-                  <Icons.Pen />
-                </button>
-                <div className="toolbar__shortcut-hint">{renderToolShortcutHint("pen", "subPanel")}</div>
-              </li>
-              <li className={activeTool === "fadepen" ? "active" : undefined} onClick={() => pickTool("fadepen")}>
-                <button tabIndex={-1} title={renderToolTitle("fadepen", "subPanel")}>
-                  <Icons.MagicPen />
-                </button>
-                <div className="toolbar__shortcut-hint">{renderToolShortcutHint("fadepen", "subPanel")}</div>
-              </li>
-            </ul>
+      {!isCollapsed && (
+        <div className="toolbar__grid">
+          <div className="grid-row">
+            {toolsRow1.map((tool) => (
+              <button
+                key={tool.id}
+                tabIndex={-1}
+                className={`grid-item ${activeTool === tool.id ? "active" : ""}`}
+                style={{ "--icon-color": tool.color }}
+                onClick={() => (tool.action ? tool.action() : handleChangeTool(tool.id))}
+                title={tool.title}
+              >
+                {tool.customRender ? tool.customRender() : tool.icon}
+              </button>
+            ))}
           </div>
 
-          <div className="side-view-body tool-group">
-            <ul className="toolbar__items">
-              <li className={activeTool === "arrow" ? "active" : undefined} onClick={() => pickTool("arrow")}>
-                <button tabIndex={-1} title={renderToolTitle("arrow", "subPanel")}>
-                  <Icons.Arrow />
-                </button>
-                <div className="toolbar__shortcut-hint">{renderToolShortcutHint("arrow", "subPanel")}</div>
-              </li>
-              <li className={activeTool === "flat_arrow" ? "active" : undefined} onClick={() => pickTool("flat_arrow")}>
-                <button tabIndex={-1} title={renderToolTitle("flat_arrow", "subPanel")}>
-                  <Icons.FlatArrow />
-                </button>
-                <div className="toolbar__shortcut-hint">{renderToolShortcutHint("flat_arrow", "subPanel")}</div>
-              </li>
-              <li className={activeTool === "rectangle" ? "active" : undefined} onClick={() => pickTool("rectangle")}>
-                <button tabIndex={-1} title={renderToolTitle("rectangle", "subPanel")}>
-                  <Icons.Rectangle />
-                </button>
-                <div className="toolbar__shortcut-hint">{renderToolShortcutHint("rectangle", "subPanel")}</div>
-              </li>
-              <li className={activeTool === "diamond" ? "active" : undefined} onClick={() => pickTool("diamond")}>
-                <button tabIndex={-1} title={renderToolTitle("diamond", "subPanel")}>
-                  <Icons.Diamond />
-                </button>
-                <div className="toolbar__shortcut-hint">{renderToolShortcutHint("diamond", "subPanel")}</div>
-              </li>
-              <li className={activeTool === "oval" ? "active" : undefined} onClick={() => pickTool("oval")}>
-                <button tabIndex={-1} title={renderToolTitle("oval", "subPanel")}>
-                  <Icons.Oval />
-                </button>
-                <div className="toolbar__shortcut-hint">{renderToolShortcutHint("oval", "subPanel")}</div>
-              </li>
-              <li className={activeTool === "line" ? "active" : undefined} onClick={() => pickTool("line")}>
-                <button tabIndex={-1} title={renderToolTitle("line", "subPanel")}>
-                  <Icons.Line />
-                </button>
-                <div className="toolbar__shortcut-hint">{renderToolShortcutHint("line", "subPanel")}</div>
-              </li>
-            </ul>
-          </div>
-
-          <div className="side-view-body color-group">
-            <ul className="toolbar__items">
-              {
-                colorList.map((color, index) => {
-                  const shortcut = String(index + 1);
-
-                  return (
-                    <li
-                      key={index}
-                      className={activeColorIndex === index ? "active" : undefined}
-                      onClick={() => onChangeColor(index)}
-                    >
-                      <button tabIndex={-1} className={`toolbar__color-picker ${color.isRainbow ? 'color-rainbow' : ''}`} style={{ backgroundColor: color.color }} title={renderShortcutTitle(color.title, shortcut)} />
-                      <div className="toolbar__shortcut-hint">{shortcut}</div>
-                    </li>
-                  );
-                })
-              }
-            </ul>
-          </div>
-
-          <div className="side-view-body width-group">
-            <ul className="toolbar__items">
-              {
-                widthList.map((width, index) => {
-                  const shortcut = String(index + 1);
-
-                  return (
-                    <li
-                      key={index}
-                      className={activeWidthIndex === index ? "active" : undefined}
-                      onClick={() => onChangeWidth(index)}
-                    >
-                      <button tabIndex={-1} className={`toolbar__width-picker ${width.name}`} title={renderShortcutTitle(width.title, shortcut)}>
-                        <div />
-                      </button>
-                      <div className="toolbar__shortcut-hint">{shortcut}</div>
-                    </li>
-                  );
-                })
-              }
-            </ul>
-          </div>
-          </div>
-
-          <div className="toolbar__panel toolbar__panel--mini">
-            <div className="toolbar__body">
-              <ul className="toolbar__items">
-                <li className="active" onClick={handleToggleCollapsed}>
-                  <button tabIndex={-1} title={renderToolTitle(activeTool, "mainPanel")}>
-                    {allIcons[activeTool]}
-                  </button>
-                </li>
-
-                <div className="toolbar__color-hint-wrapper" onClick={handleToggleCollapsed}>
-                  <div className={`toolbar__color-hint color_tool_${activeTool} ${activeColor.isRainbow ? 'color-rainbow' : ''} ${widthList[activeWidthIndex].name}`} style={{ backgroundColor: activeColor.color }}></div>
-                </div>
-              </ul>
-            </div>
+          <div className="grid-row">
+            {toolsRow2.map((tool) => (
+              <button
+                key={tool.id}
+                tabIndex={-1}
+                className={`grid-item ${activeTool === tool.id ? "active" : ""}`}
+                style={{ "--icon-color": tool.color }}
+                onClick={() => (tool.action ? tool.action() : handleChangeTool(tool.id))}
+                title={tool.title}
+              >
+                {tool.customRender ? tool.customRender() : tool.icon}
+              </button>
+            ))}
           </div>
         </div>
-      </div>
-
-      <div className="toolbar__slider" onClick={handleToggleCollapsed}>
-        {
-          isCollapsed ? <Icons.AngleRight /> : <Icons.AngleLeft />
-        }
-      </div>
-
-      <div className="toolbar__close">
-        <button tabIndex={-1} onClick={handleCloseToolBar}>
-          <Icons.Close size={16} />
-        </button>
-      </div>
+      )}
     </aside>
-  );
-};
+  )
+}
 
-export default ToolBar;
+export default ToolBar
