@@ -1513,22 +1513,35 @@ const Application = (settings) => {
   }
 
   const handleContextMenu = (event) => {
-    event.preventDefault();
+    if (event && event.preventDefault) {
+      event.preventDefault()
+    }
 
-    if (isDrawing) return;
-    if (isActiveFigureMoving()) return;
+    setIsDrawing(false)
+
+    if (isActiveFigureMoving()) return
 
     if (activeFigureInfo) {
-      setActiveFigureInfo(null);
-      return;
+      setActiveFigureInfo(null)
+      return
     }
 
     if (clearDrawingsOnHide) {
-      handleReset();
+      handleReset()
     }
 
-    invokePointerMode();
+    invokePointerMode()
   }
+
+  useEffect(() => {
+    const handleGlobalContextMenu = (e) => {
+      handleContextMenu(e)
+    }
+    window.addEventListener('contextmenu', handleGlobalContextMenu)
+    return () => {
+      window.removeEventListener('contextmenu', handleGlobalContextMenu)
+    }
+  }, [handleContextMenu])
 
   const handleEnablePointerMode = () => {
     if (clearDrawingsOnHide) {
@@ -1861,7 +1874,7 @@ const Application = (settings) => {
   };
 
   const handleTextEditorBlur = (text) => {
-    const cleanedText = text.replace(/[\s\u200B\u200C\u200D\uFEFF]+$/g, ''); // прибираємо сміття з кінця
+    const cleanedText = text.replace(/[\s\u200B\u200C\u200D\uFEFF]+$/g, ''); // ΠΏΡ€ΠΈΠ±ΠΈΡ€Π°Ρ”ΠΌΠΎ ΡΠΌΡ–Ρ‚Ρ‚Ρ Π· ΠΊΡ–Π½Ρ†Ρ
 
     if (cleanedText === '') {
       setTextEditorContainer(null);
@@ -2015,6 +2028,7 @@ const Application = (settings) => {
         handleChangeTool={handleChangeTool}
         colorList={colorList}
         drawWithTouch={drawWithTouch}
+        handleContextMenu={handleContextMenu}
       />
 
       {

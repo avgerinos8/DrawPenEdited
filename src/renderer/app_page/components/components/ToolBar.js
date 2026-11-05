@@ -2,9 +2,9 @@ import React, { useEffect, useState, useCallback, useRef } from "react"
 import "./ToolBar.scss"
 import { widthList } from "../constants.js"
 
-const TOOLBAR_WIDTH = 210
+const TOOLBAR_WIDTH = 228
 const TOOLBAR_HEIGHT = 40
-const HANDLE_WIDTH = 30
+const COLLAPSED_WIDTH = 48
 const WINDOW_CONTROLS_OFFSET = 150
 const TOOLBAR_MARGIN_TOP = 8
 const SNAP_THRESHOLD = 30
@@ -117,7 +117,7 @@ const ToolBar = ({
     const newX = e.clientX - offset.x
     const newY = e.clientY - offset.y
 
-    const currentWidth = isCollapsed ? HANDLE_WIDTH : TOOLBAR_WIDTH
+    const currentWidth = isCollapsed ? COLLAPSED_WIDTH : TOOLBAR_WIDTH
     const minX = 10
     const minY = TOOLBAR_MARGIN_TOP
     const maxX = Math.max(minX, window.innerWidth - currentWidth - 10)
@@ -154,8 +154,7 @@ const ToolBar = ({
     }
   }, [dragging, handlePointerMove, handlePointerUp])
 
-  const handleMainButtonClick = () => {
-    if (dragDistanceRef.current > 5) return
+  const handleModeButtonClick = () => {
     if (isCollapsed) {
       setIsCollapsed(false)
     } else {
@@ -171,23 +170,29 @@ const ToolBar = ({
       style={{ left: position.x, top: position.y }}
     >
       <div
-        className="toolbar__handle"
+        className="toolbar__drag-grip"
         onPointerDown={handlePointerDown}
-        onClick={handleMainButtonClick}
-        title={isCollapsed ? "Click to Expand • Drag to Move" : "Pointer Mode • Drag to Move"}
+        title="Drag to move toolbar"
       >
-        <div className="handle__grip">
-          <div className="grip-dot" />
-          <div className="grip-dot" />
-          <div className="grip-dot" />
-          <div className="grip-dot" />
-          <div className="grip-dot" />
-          <div className="grip-dot" />
-        </div>
-        <div className="handle__icon">
+        <div className="grip-dot" />
+        <div className="grip-dot" />
+        <div className="grip-dot" />
+        <div className="grip-dot" />
+        <div className="grip-dot" />
+        <div className="grip-dot" />
+      </div>
+
+      <button
+        type="button"
+        tabIndex={-1}
+        className="toolbar__mode-btn"
+        onClick={handleModeButtonClick}
+        title={isCollapsed ? "Click to Expand • Pointer Mode" : "Exit Draw Mode (Right-Click) • Pointer Mode"}
+      >
+        <div className="mode-btn__icon">
           <Icons.DrawModeEnabled />
         </div>
-      </div>
+      </button>
 
       {!isCollapsed && (
         <div className="toolbar__grid">

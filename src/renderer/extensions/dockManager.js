@@ -1,6 +1,6 @@
 // Docking manager for DrawPen toolbar
 export const TOOLBAR_HEIGHT = 40
-export const TOOLBAR_WIDTH = 210
+export const TOOLBAR_WIDTH = 228
 export const WINDOW_CONTROLS_OFFSET = 150
 export const TOOLBAR_MARGIN_TOP = 8
 

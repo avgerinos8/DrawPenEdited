@@ -207,7 +207,7 @@ const schema = {
   },
   starts_hidden: {
     type: 'boolean',
-    default: false
+    default: true
   },
   clear_drawings_on_hide: {
     type: 'boolean',
@@ -292,7 +292,7 @@ function getDockCoordinates(_dockMode, display) {
   const currentDisplay = display || getLockedMonitor() || getActiveMonitor() || getUnderCursorMonitor()
   if (!currentDisplay) return { x: 10, y: 8 }
   const bounds = currentDisplay.bounds
-  const toolbarWidth = 210
+  const toolbarWidth = 228
   const windowControlsOffset = 150
   const marginTop = 8
 
@@ -884,11 +884,17 @@ ipcMain.handle('close_app', () => {
   return null
 });
 
+ipcMain.handle('enable_pointer_mode', () => {
+  enablePointerMode()
+
+  return null
+})
+
 ipcMain.handle('toggle_draw_or_pointer_window', () => {
   toggleDrawOrPointerMode()
 
   return null
-});
+})
 
 ipcMain.handle('open_settings', () => {
   showSettingsWindow()

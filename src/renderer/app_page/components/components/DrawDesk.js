@@ -43,6 +43,7 @@ const DrawDesk = ({
   handleChangeTool,
   colorList,
   drawWithTouch = true,
+  handleContextMenu,
 }) => {
 
   const canvasRef = useRef(null);
@@ -190,11 +191,13 @@ const DrawDesk = ({
   }
 
   const onPointerDown = (event) => {
+    if (event.button === 2) {
+      return
+    }
+
     event.preventDefault() // NOTE: Required for Text figure
 
     if (shouldIgnoreTouch(event, drawWithTouch)) return
-
-    if(event.pointerType === 'mouse' && event.button === 2) return;
 
     if (isTemporaryEraser(event) && activeTool !== 'eraser') {
       // Hard Trick! Rethink!
@@ -229,6 +232,13 @@ const DrawDesk = ({
   }
 
   const onPointerUp = (event) => {
+    if (event.button === 2) {
+      if (handleContextMenu) {
+        handleContextMenu(event)
+      }
+      return
+    }
+
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
@@ -260,6 +270,7 @@ const DrawDesk = ({
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
       onDoubleClick={onDoubleClick}
+      onContextMenu={handleContextMenu}
     />
   );
 };

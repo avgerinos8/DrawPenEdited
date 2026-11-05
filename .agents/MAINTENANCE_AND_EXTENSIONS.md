@@ -144,4 +144,23 @@ Because `palmMinContactLength = 35` and `palmMinContactArea = 2000`, normal fing
 - Uses physical key codes (`event.code`: `KeyS` -> `'s'`, `KeyX` -> `'x'`, `KeyB` -> `'b'`, etc.) rather than localized characters (`event.key`).
 - Ensures shortcuts (`S` to clear, `X` to cycle colors, `B` for brush, etc.) function seamlessly regardless of whether the Windows input layout is Greek, English, or any other layout.
 
+---
+
+## 7. Feature 6: Right-Click Draw Mode Exit & Dedicated Toolbar Mode Button
+
+### 7.1 Right-Click Exit Restoration
+- **Root Cause:** In Chromium, calling `event.preventDefault()` on `pointerdown` for mouse button 2 suppresses the native `contextmenu` event. Previously, `DrawDesk.js` executed `event.preventDefault()` on all pointerdown events, completely dropping right-click context menu events.
+- **Fix:**
+  - Bypassed `event.preventDefault()` when `event.button === 2` in `onPointerDown`.
+  - Added direct right-click invocation in `onPointerUp` (`event.button === 2`).
+  - Attached `onContextMenu={handleContextMenu}` directly on `<canvas>`.
+  - Added window-level `contextmenu` event listener in `Application.js`.
+  - Exposed direct `enable_pointer_mode` IPC handler in `src/main/index.js` to immediately hide `mainWindow` and release focus without toggle race conditions.
+
+### 7.2 Dedicated Big Mode Button on Toolbar
+- Separated the drag handle (`.toolbar__drag-grip`, 12px width) from the mode switch button.
+- Added a dedicated, prominent button (`.toolbar__mode-btn`, 36px width × 40px height) featuring `<Icons.DrawModeEnabled />`.
+- Clicking the button directly triggers `handleEnablePointerMode()`, cleanly exiting Draw Mode back to the system tray.
+
+
 

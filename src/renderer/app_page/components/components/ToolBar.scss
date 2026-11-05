@@ -1,7 +1,7 @@
 :root {
-  --toolbar-width: 210px;
+  --toolbar-width: 228px;
   --toolbar-height: 40px;
-  --toolbar-handle-width: 30px;
+  --toolbar-collapsed-width: 48px;
   --toolbar-grid-width: 180px;
   --toolbar-bg: #FFFFFF;
   --toolbar-border: rgba(0, 0, 0, 0.18);
@@ -26,7 +26,7 @@
   transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 
   &.toolbar--collapsed {
-    width: var(--toolbar-handle-width);
+    width: var(--toolbar-collapsed-width);
   }
 
   button {
@@ -42,16 +42,16 @@
     }
   }
 
-  .toolbar__handle {
-    width: var(--toolbar-handle-width);
+  .toolbar__drag-grip {
+    width: 12px;
     height: var(--toolbar-height);
     flex-shrink: 0;
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 3px;
     background-color: #F8FAFC;
-    border-right: 1px solid rgba(0, 0, 0, 0.12);
     cursor: grab;
     transition: background-color 0.15s ease;
 
@@ -63,30 +63,45 @@
       cursor: grabbing;
     }
 
-    .handle__grip {
-      display: grid;
-      grid-template-columns: repeat(2, 2px);
-      row-gap: 2px;
-      column-gap: 2px;
-      margin-right: 2px;
+    .grip-dot {
+      width: 2.5px;
+      height: 2.5px;
+      border-radius: 50%;
+      background-color: rgba(0, 0, 0, 0.4);
+    }
+  }
 
-      .grip-dot {
-        width: 2px;
-        height: 2px;
-        border-radius: 50%;
-        background-color: rgba(0, 0, 0, 0.35);
-      }
+  .toolbar__mode-btn {
+    width: 36px;
+    height: var(--toolbar-height);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #EFF6FF;
+    border-right: 1px solid rgba(0, 0, 0, 0.12);
+    border-left: 1px solid rgba(0, 0, 0, 0.08);
+    cursor: pointer;
+    color: #1D4ED8;
+    transition: background-color 0.15s ease, color 0.15s ease;
+
+    &:hover {
+      background-color: #DBEAFE;
+      color: #1E40AF;
     }
 
-    .handle__icon {
+    &:active {
+      background-color: #BFDBFE;
+    }
+
+    .mode-btn__icon {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #0F172A;
 
       svg {
-        width: 14px;
-        height: 14px;
+        width: 18px;
+        height: 18px;
         pointer-events: none;
       }
     }
