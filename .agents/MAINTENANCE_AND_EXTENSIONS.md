@@ -162,5 +162,28 @@ Because `palmMinContactLength = 35` and `palmMinContactArea = 2000`, normal fing
 - Added a dedicated, prominent button (`.toolbar__mode-btn`, 36px width × 40px height) featuring `<Icons.DrawModeEnabled />`.
 - Clicking the button directly triggers `handleEnablePointerMode()`, cleanly exiting Draw Mode back to the system tray.
 
+---
+
+## 8. Feature 7: Disable Upstream Auto-Update, Remove Extended Toolbar Window & Fix Windows Startup
+
+### 8.1 Auto-Updater Disabled
+- **Root Cause:** `updateElectronApp()` contacted `https://update.electronjs.org/DmytroVasin/DrawPen/...` and downloaded upstream `v0.0.61`, silently overwriting the custom build and bringing back the large upstream toolbar.
+- **Fix:** Disabled `updateApp()` so this custom fork never overwrites itself from upstream releases. Bumped package version to `0.1.0` so Squirrel upgrades cleanly over upstream `0.0.61`.
+
+### 8.2 Extended Toolbar Window Eliminated
+- Disabled creation and display of `extendedToolbarWindow` in `src/main/index.js` (`createExtendedToolbarWindow()` and `showExtendedToolbarWindow()` return immediately, with `null` guards on all references).
+- Removed the "Hide Extended Toolbar" toggle from `Settings.js`.
+- Only the custom 40px compact toolbar inside `mainWindow` exists.
+
+### 8.3 Resilient Squirrel Windows Startup (Minimized to Tray)
+- **Root Cause:** Older versions registered the versioned binary path (`app-0.0.59\DrawPen.exe`) in `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`. When Squirrel deleted `app-0.0.59`, Windows could no longer launch the app at logon, and `launch_on_login` defaulted to `false` with no startup sync.
+- **Fix:**
+  - Set `launch_on_login` default to `true` and `starts_hidden` default to `true`.
+  - When packaged with Squirrel (`Update.exe` exists one directory up), `applyLaunchOnLogin(true)` registers:
+    `Update.exe --processStart DrawPen.exe --process-start-args=--hidden` under `com.squirrel.DrawPen.DrawPen`.
+  - `syncLaunchOnLogin()` runs at `app.whenReady()` to repair missing or stale startup paths after upgrades.
+  - `--squirrel-uninstall` removes the startup entry cleanly.
+
+
 
 

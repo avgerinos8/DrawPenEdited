@@ -63,7 +63,6 @@ const Settings = (config) => {
   const [launchOnLogin, setLaunchOnLogin] = useState(config.launch_on_login);
   const [startsHidden, setStartsHidden] = useState(config.starts_hidden);
   const [clearDrawingsOnHide, setClearDrawingsOnHide] = useState(config.clear_drawings_on_hide);
-  const [disableToolbarInPointerMode, setDisableToolbarInPointerMode] = useState(config.disable_toolbar_in_pointer_mode);
   const [toolbarOrientation, setToolbarOrientation] = useState(config.tool_bar_orientation);
   const [drawWithTouch, setDrawWithTouch] = useState(config.draw_with_touch ?? true)
   const [toolbarDock, setToolbarDock] = useState(config.tool_bar_dock || 'top-right')
@@ -209,13 +208,6 @@ const Settings = (config) => {
     setClearDrawingsOnHide(nextState);
 
     window.electronAPI.setClearDrawingsOnHide(nextState);
-  };
-
-  const toggleDisableToolbarInPointerMode = () => {
-    const nextState = !disableToolbarInPointerMode;
-    setDisableToolbarInPointerMode(nextState);
-
-    window.electronAPI.setDisableToolbarInPointerMode(nextState);
   };
 
   const selectAppIconColor = (event) => {
@@ -527,20 +519,6 @@ const Settings = (config) => {
                         <IoChevronDown className="icon" />
                       </div>
                     </div>
-                  </div>
-                </div>
-
-                <div className="settings-item">
-                  <div className="settings-item-info">
-                    <div className="settings-item-title">Hide Extended Toolbar</div>
-                    <div className="settings-item-description">Affects only Pointer Mode</div>
-                  </div>
-
-                  <div className="settings-item-control">
-                    <div
-                      className={`toggle ${disableToolbarInPointerMode ? 'active' : ''}`}
-                      onClick={toggleDisableToolbarInPointerMode}
-                    ></div>
                   </div>
                 </div>
 

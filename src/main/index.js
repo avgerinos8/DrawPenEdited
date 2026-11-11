@@ -9,8 +9,15 @@ import path from 'path';
 import os from 'os';
 import electronSquirrelStartup from 'electron-squirrel-startup';
 
+if (process.platform === 'win32' && process.argv[1] === '--squirrel-uninstall') {
+  try {
+    app.setAppUserModelId('com.squirrel.DrawPen.DrawPen')
+    app.setLoginItemSettings({ openAtLogin: false, name: 'com.squirrel.DrawPen.DrawPen' })
+  } catch (error) {}
+}
+
 if (electronSquirrelStartup) {
-  app.quit();
+  app.quit()
 }
 
 const isDevelopment = process.env.NODE_ENV === 'development'
@@ -171,7 +178,7 @@ const schema = {
   },
   launch_on_login: {
     type: 'boolean',
-    default: false
+    default: true
   },
   key_binding_show_hide_app: {
     type: 'string',
@@ -225,7 +232,11 @@ const schema = {
     type: 'string',
     default: path.join(app.getPath('pictures'), 'drawpen'),
   },
-};
+  login_item_synced_version: {
+    type: 'string',
+    default: ''
+  },
+}
 
 // rawLog('[STORE PATH]:', app.getPath('userData') + '/config.json');
 const store = new Store({
@@ -522,74 +533,9 @@ function createMainWindow() {
 }
 
 function createExtendedToolbarWindow() {
-  let hasDevTools = false
-
-  if (isDevelopment) {
-    hasDevTools = true
-  }
-
-  extendedToolbarWindow = new BrowserWindow({
-    show: false,
-    ...getExtendedToolbarWindowSize(),
-    transparent: true,
-    backgroundColor: '#00000000', // 8-symbol ARGB
-    resizable: false,
-    minimizable: false,
-    maximizable: false,
-    frame: false,
-    hasShadow: false,
-    alwaysOnTop: true,
-    skipTaskbar: true,
-    opacity: 0.9999999, // Fix transparency rendering artifacts
-    autoHideMenuBar: true,
-    webPreferences: {
-      devTools: hasDevTools,
-      nodeIntegration: false,
-      preload: EXTENDED_TOOLBAR_WINDOW_PRELOAD_WEBPACK_ENTRY,
-    }
-  })
-
-  extendedToolbarWindow.loadURL(EXTENDED_TOOLBAR_WINDOW_WEBPACK_ENTRY)
-  extendedToolbarWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
-  extendedToolbarWindow.setAlwaysOnTop(true, 'screen-saver')
-
-  extendedToolbarWindow.on('close', function (event) {
-    rawLog('Extended toolbar window: on close')
-
-    if (isQuitting) return;
-
-    event.preventDefault();
-
-    hideApp()
-  })
-
-  extendedToolbarWindow.on('closed', () => {
-    if (extendedToolbarPositionStoreTimeout) {
-      clearTimeout(extendedToolbarPositionStoreTimeout)
-      extendedToolbarPositionStoreTimeout = null
-    }
-
-    extendedToolbarWindow = null
-
-    app.quit()
-  })
-
-  extendedToolbarWindow.on('moved', () => {
-    scheduleStoreToolbarPositionFromExtendedWindow()
-  })
-
-  extendedToolbarWindow.webContents.once('did-finish-load', () => {
-    if (startAsHidden) return;
-
-    enablePointerMode()
-  })
-
-  extendedToolbarWindow.webContents.setVisualZoomLevelLimits(1, 1);
-  extendedToolbarWindow.webContents.on('before-input-event', (event, input) => {
-    if ((input.control || input.meta) && ['+', '=', '-', '0', 'numadd', 'numsub'].includes(input.key.toLowerCase())) {
-      event.preventDefault();
-    }
-  });
+  // Extended floating toolbar disabled permanently; only compact in-canvas toolbar is used
+  extendedToolbarWindow = null
+  return
 }
 
 function showAboutWindow() {
@@ -758,6 +704,7 @@ app.whenReady().then(() => {
 
   updateApp()
   setApplicationName()
+  syncLaunchOnLogin()
 
   screen.on('display-added', handleDisplayChange)
   screen.on('display-removed', handleDisplayChange)
@@ -805,9 +752,8 @@ function hideDock() {
 }
 
 function updateApp() {
-  if (isLinux) return
-
-  updateElectronApp()
+  // Auto-updater disabled so upstream releases never overwrite this custom build
+  return
 }
 
 ipcMain.handle('get_app_version', () => {
@@ -1129,15 +1075,15 @@ ipcMain.handle('set_shortcut', (_event, key, value) => {
 ipcMain.handle('set_launch_on_login', (_event, value) => {
   rawLog('Setting launch on login:', value)
 
-  safeSetLoginItemSettings({
-    openAtLogin: value,
-    openAsHidden: value,
-    args: value ? ['--hidden'] : []
-  })
+  const enabled = !!value
+  applyLaunchOnLogin(enabled)
 
-  store.set('launch_on_login', value)
-  if (value) {
+  store.set('launch_on_login', enabled)
+  if (enabled) {
     store.set('starts_hidden', true)
+    store.set('login_item_synced_version', app.getVersion())
+  } else {
+    store.delete('login_item_synced_version')
   }
 
   return null
@@ -1273,14 +1219,16 @@ ipcMain.handle('set_toolbar_orientation', (_event, value) => {
 
   store.set('tool_bar_orientation', value)
 
-  const { width, height } = getExtendedToolbarWindowSize()
-  extendedToolbarWindow.setSize(width, height)
+  if (extendedToolbarWindow) {
+    const { width, height } = getExtendedToolbarWindowSize()
+    extendedToolbarWindow.setSize(width, height)
+    extendedToolbarWindow.reload()
+  }
 
   mainWindow.reload()
-  extendedToolbarWindow.reload()
 
   return null
-});
+})
 
 ipcMain.handle('set_draw_with_touch', (_event, value) => {
   rawLog('Setting draw with touch:', value)
@@ -1429,18 +1377,7 @@ function handleDisplayChange() {
 }
 
 function updateExternalToolbarVisibility() {
-  if (drawingMode) return;
-
-  if (store.get('disable_toolbar_in_pointer_mode')) {
-    hideWindow(extendedToolbarWindow)
-    return
-  }
-
-  if (store.get('show_tool_bar')) {
-    showExtendedToolbarWindow()
-  } else {
-    hideWindow(extendedToolbarWindow)
-  }
+  hideWindow(extendedToolbarWindow)
 }
 
 function toggleToolbar() {
@@ -1479,19 +1416,21 @@ function resetApp() {
 
     registerGlobalShortcuts()
 
-    if (safeIsOpenAtLogin()) {
-      safeSetLoginItemSettings({ openAtLogin: false });
-    }
+    syncLaunchOnLogin()
 
     tray.setImage(getTrayIconPath())
 
-    const { width, height } = getExtendedToolbarWindowSize()
-    extendedToolbarWindow.setSize(width, height)
+    if (extendedToolbarWindow) {
+      const { width, height } = getExtendedToolbarWindowSize()
+      extendedToolbarWindow.setSize(width, height)
+    }
 
     enablePointerMode()
 
     mainWindow.reload()
-    extendedToolbarWindow.reload()
+    if (extendedToolbarWindow) {
+      extendedToolbarWindow.reload()
+    }
 
     if (settingsWindow) {
       settingsWindow.reload()
@@ -1748,6 +1687,8 @@ function sendNotification(data) {
 }
 
 function hideWindow(targetWindow) {
+  if (!targetWindow) return
+
   targetWindow.setOpacity(0)
   try {
     targetWindow.hide()
@@ -1757,6 +1698,8 @@ function hideWindow(targetWindow) {
 }
 
 function showWindow(targetWindow, { inactive = false } = {}) {
+  if (!targetWindow) return
+
   targetWindow.setOpacity(0)
 
   try {
@@ -1789,6 +1732,7 @@ function releaseFocusBack() {
 }
 
 function storeToolbarPositionFromExtendedWindow() {
+  if (!extendedToolbarWindow) return
   const currentDisplay = getLockedMonitor() || getUnderToolbarMonitor()
   if (!currentDisplay) return;
 
@@ -1871,20 +1815,8 @@ function updateMainWindowPosition(display) {
 // - Enable Toolbar from Tray
 // - Enable Pointer Mode (Click by Main Button or from Tray)
 function showExtendedToolbarWindow() {
-  if (store.get('disable_toolbar_in_pointer_mode')) return;
-  if (!store.get('show_tool_bar')) return;
-
-  const currentDisplay = getLockedMonitor() || getActiveMonitor() || getUnderCursorMonitor()
-
-  const dockMode = store.get('tool_bar_dock')
-  if (dockMode && dockMode !== 'none') {
-    const { x, y } = getDockCoordinates(dockMode, currentDisplay)
-    store.set({ tool_bar_x: x, tool_bar_y: y })
-  }
-
-  updateExtendedToolbarWindowPosition(currentDisplay)
-
-  showWindow(extendedToolbarWindow, { inactive: true })
+  // Extended floating toolbar disabled permanently; only compact in-canvas toolbar is used
+  return
 }
 
 function getExtendedToolbarWindowSize() {
@@ -1896,6 +1828,7 @@ function getExtendedToolbarWindowSize() {
 }
 
 function updateExtendedToolbarWindowPosition(display) {
+  if (!extendedToolbarWindow) return
   const { x: displayX, y: displayY } = display.bounds
 
   extendedToolbarWindow.setBounds({
@@ -1925,7 +1858,7 @@ function getUnderCursorMonitor() {
 }
 
 function getUnderToolbarMonitor() {
-  if (!extendedToolbarWindow.isVisible()) {
+  if (!extendedToolbarWindow || !extendedToolbarWindow.isVisible()) {
     return null
   }
 
@@ -2019,21 +1952,94 @@ function safeWasOpenedAtLogin() {
 }
 
 function safeIsOpenAtLogin() {
-  if (isLinux) return false;
+  if (isLinux) return false
 
   try {
-    return !!app.getLoginItemSettings().openAtLogin
+    const info = app.getLoginItemSettings(getLoginItemTarget())
+    return !!(info.openAtLogin || info.executableWillLaunchAtLogin)
   } catch (error) {
     return false
   }
 }
 
 function safeSetLoginItemSettings(settings) {
-  if (isLinux) return;
+  if (isLinux) return
 
   try {
     app.setLoginItemSettings(settings)
   } catch (error) {}
+}
+
+function safeGetLoginItemSettings(options) {
+  if (isLinux) return {}
+
+  try {
+    return app.getLoginItemSettings(options) || {}
+  } catch (error) {
+    return {}
+  }
+}
+
+function getSquirrelUpdateExePath() {
+  if (!isWin) return null
+
+  const updateExe = path.resolve(path.dirname(process.execPath), '..', 'Update.exe')
+  return fs.existsSync(updateExe) ? updateExe : null
+}
+
+function getLoginItemTarget() {
+  if (!isWin) return {}
+
+  const updateExe = getSquirrelUpdateExePath()
+  if (updateExe) {
+    return {
+      path: updateExe,
+      args: ['--processStart', path.basename(process.execPath), '--process-start-args=--hidden'],
+    }
+  }
+
+  return {
+    path: process.execPath,
+    args: ['--hidden'],
+  }
+}
+
+function applyLaunchOnLogin(enabled) {
+  if (isLinux) return
+
+  const settings = {
+    openAtLogin: !!enabled,
+    enabled: !!enabled,
+    ...(isWin ? { name: 'com.squirrel.DrawPen.DrawPen', ...getLoginItemTarget() } : { openAsHidden: !!enabled }),
+  }
+
+  safeSetLoginItemSettings(settings)
+}
+
+function syncLaunchOnLogin() {
+  if (isLinux || isDevelopment) return
+
+  const shouldLaunch = !!store.get('launch_on_login')
+  const target = getLoginItemTarget()
+  const current = safeGetLoginItemSettings(target)
+  const matchingItem = (current.launchItems || []).find(
+    (item) => item.name === 'com.squirrel.DrawPen.DrawPen' || (target.path && item.path === target.path)
+  )
+
+  if (shouldLaunch) {
+    const isStalePath = !matchingItem || !fs.existsSync(matchingItem.path) || (isWin && target.path && matchingItem.path.toLowerCase() !== target.path.toLowerCase())
+    const versionChanged = store.get('login_item_synced_version') !== app.getVersion()
+    const notDisabledInTaskManager = !matchingItem || matchingItem.enabled !== false
+
+    if (isStalePath || (versionChanged && notDisabledInTaskManager)) {
+      applyLaunchOnLogin(true)
+      store.set('login_item_synced_version', app.getVersion())
+    }
+  } else if (matchingItem || safeGetLoginItemSettings().executableWillLaunchAtLogin) {
+    applyLaunchOnLogin(false)
+    safeSetLoginItemSettings({ openAtLogin: false })
+    store.delete('login_item_synced_version')
+  }
 }
 
 function launchTracker() {
